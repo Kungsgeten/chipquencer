@@ -1,0 +1,20 @@
+<ButtonGrid>:
+    keyboard: keybed
+    BoxLayout:
+        width: 900
+        height: 150
+        Spinner:
+            size_hint: (0.2, 1)
+            values: root.device_names()
+            on_text: root.keyboard.set_device(self.text)
+        Keybed:
+            id: keybed
+            channel: 0
+            root: 80
+            octaves: 3
+        Slider:
+            size_hint: (0.05, 1)
+            orientation: 'vertical'
+            min: 20
+            max: 80
+            on_value: root.keyboard.root = int(self.value)
