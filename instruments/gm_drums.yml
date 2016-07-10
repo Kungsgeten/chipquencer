@@ -1,0 +1,4 @@
+name: "GM Drums"
+channel: 9
+sequencer:
+  type: drum
