@@ -1,0 +1,15 @@
+greenish: &greenish
+  primary:  0xa3a838
+  lighter:  0xcdd269
+  lightest: 0xf8fca8
+  darker:   0x797e15
+  darkest:  0x505400
+
+linda: &linda
+  primary:  0x28784d
+  lighter:  0x4b966e
+  lightest: 0x78b494
+  darker:   0x0f5a32
+  darkest:  0x003c1c
+
+active_theme: *linda
