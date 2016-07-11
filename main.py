@@ -21,7 +21,7 @@ melody.length = 16
 sequencer.parts.append(melody)
 
 drums = sequencer.Part()
-drums.length = 10
+drums.length = 16
 drums.channel = 9
 # pad.append_notes(two_notes)
 

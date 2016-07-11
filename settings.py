@@ -3,7 +3,7 @@ import yaml
 from os import listdir
 from os.path import isfile, join
 
-SCREEN_SIZE = SCREEN_WIDTH, SCREEN_HEIGHT = 320, 240
+SCREEN_SIZE = SCREEN_WIDTH, SCREEN_HEIGHT = 480, 272
 
 # Color theme
 C_PRIMARY = None
