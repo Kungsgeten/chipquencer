@@ -10,7 +10,7 @@ import math, pygame, copy
 
 class Keyboard():
     pygame.font.init()
-    font = pygame.font.SysFont('04b03', 10)    
+    font = pygame.font.SysFont('04b03', 10)
     KEY_WIDTH = 20
     KEY_HEIGHT = 40
 
@@ -64,12 +64,12 @@ class SeqGrid(gui.Screen):
                    2: 2,
                    3: 1,
                    4: 0.5} # '2', '4', '8', '16', '32', '.'
-    
+
     class Radio:
         VELOCITY = 0
         LENGTH = 1
         OFFSET = 2
-    
+
     def __init__(self, part):
         self.has_changed = False # If the GUI should render or not
         self.keyboard = Keyboard()
@@ -130,7 +130,7 @@ class SeqGrid(gui.Screen):
                                     del self.part._events[j]
                                 else:
                                     del self.part._events[j]
-                                    del self.part._events[k]                                    
+                                    del self.part._events[k]
                                 break
                     else:
                         del self.part._events[j]
@@ -191,7 +191,7 @@ class SeqGrid(gui.Screen):
                     self.slider.set_value(self.LEN_PRESETS[presetclick], 15.999)
             elif self.radios.selected == self.Radio.OFFSET:
                 self.slider.set_value((presetclick / 6.) * 0.9999, 0.9999)
-                
+
         # Slider
         slided = self.slider.update(events)
         if slided is not None or presetclick is not None:
@@ -219,7 +219,7 @@ class SeqGrid(gui.Screen):
 
         if self.modeline.buttons[3].pressed:
             gui.pop()
-        
+
         for e in events:
             if e.type == pygame.KEYDOWN:
                 self.has_changed = True
@@ -270,7 +270,7 @@ class SeqGrid(gui.Screen):
                                 self.has_changed = True
                                 break
 
-    def _change_slider(self):            
+    def _change_slider(self):
         for step in self.selected:
             for i, n in enumerate(self.steps[step][1]):
                 if self.radios.selected == self.Radio.VELOCITY:
@@ -292,7 +292,7 @@ class SeqGrid(gui.Screen):
             self.slider.set_value(self.last_length, 16.)
         elif self.radios.selected == self.Radio.OFFSET:
             self.slider.set_value(self.last_offset, 0.9999)
-    
+
     def _on_step_click(self, step):
         self.has_changed = True
         self.selected.append(step)

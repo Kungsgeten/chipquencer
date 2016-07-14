@@ -19,7 +19,7 @@ class SeqDrum(gui.Screen):
         self.modeline = Modeline()
         self.modeline.buttonstrings = ['', '', '', 'Exit']
         self.modeline.text = 'Drum drum...'
-        
+
     def update(self, events):
         self.modeline.update(events)
         if self.modeline.buttons[3].pressed:
@@ -50,11 +50,11 @@ class SeqDrum(gui.Screen):
                                             del self.part._events[i]
                                         break
                         self.part._sort()
-    
+
     def render(self):
         surface = pygame.Surface(settings.SCREEN_SIZE)
         surface.fill(settings.C_LIGHTER)
-        curstep = math.floor(sequencer.running_time % self.part.length)        
+        curstep = math.floor(sequencer.running_time % self.part.length)
         for row in range(len(self.grid)):
             for col, triggered in enumerate(self.grid[row]):
                 pos = ((col % 16) * self.STEP_SIZE, row * self.STEP_SIZE)
@@ -67,4 +67,3 @@ class SeqDrum(gui.Screen):
                 pygame.draw.rect(surface, rectcolor, rect, 1 - triggered)
         self.modeline.render(surface)
         return surface
-        
