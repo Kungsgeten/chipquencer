@@ -1,9 +1,9 @@
 import midi
 import settings
 import sequencer
-import slider
-import radiob
-import gui
+import screen
+
+from gui import RadioButtons, Slider
 from modeline import Modeline
 
 import math, pygame, copy
@@ -51,7 +51,7 @@ class Keyboard():
             surface.blit(text, (rect.x + 2, rect.y + self.KEY_HEIGHT - text.get_height()))
         return surface
 
-class SeqGrid(gui.Screen):
+class SeqGrid(screen.Screen):
     pygame.font.init()
     font = pygame.font.SysFont('04b03', 10)
     step_clicked = -1
@@ -71,7 +71,6 @@ class SeqGrid(gui.Screen):
         OFFSET = 2
 
     def __init__(self, part):
-        self.has_changed = False # If the GUI should render or not
         self.keyboard = Keyboard()
         self.modeline = Modeline()
         self.modeline.buttonstrings = ['Shift', 'Options', 'Mode', 'Exit']
@@ -88,16 +87,16 @@ class SeqGrid(gui.Screen):
         self.chordnote = -1 # which note of a chord we're editing. negative = all
         self.last_step = -1 # step the prior update
         SLIDER_WIDTH = 30
-        self.slider = slider.Slider(pygame.Rect(settings.SCREEN_WIDTH - SLIDER_WIDTH - 8,
-                                                settings.SCREEN_HEIGHT - Keyboard.KEY_HEIGHT - 143,
-                                                SLIDER_WIDTH,
-                                                127))
+        self.slider = Slider(pygame.Rect(settings.SCREEN_WIDTH - SLIDER_WIDTH - 8,
+                                         settings.SCREEN_HEIGHT - Keyboard.KEY_HEIGHT - 143,
+                                         SLIDER_WIDTH,
+                                         127))
         strings = 'Vel', 'Len', 'Off'
         distance = 2
-        self.radios = radiob.RadioButtons((self.STEP_SIZE*4 + distance, distance),
-                                          (41, 45), 3, 1, strings, distance)
-        self.preset_radios = radiob.RadioButtons((self.STEP_SIZE*4 + distance, distance*4 + 41),
-                                              (41, 41), 2, 3, [], distance)
+        self.radios = RadioButtons((self.STEP_SIZE*4 + distance, distance),
+                                   (41, 45), 3, 1, strings, distance)
+        self.preset_radios = RadioButtons((self.STEP_SIZE*4 + distance, distance*4 + 41),
+                                          (41, 41), 2, 3, [], distance)
         self.last_vel = 120
         self.last_length = 1.0
         self.last_offset = 0.0
@@ -139,9 +138,8 @@ class SeqGrid(gui.Screen):
         self.part._sort()
         # self.part.start()
 
-    def update(self, events):
-        self.modeline.update(events)
-        self.has_changed = False
+    def _update(self, events):
+        # self.modeline.update(events)
         # New step?
         if self.last_step != math.floor(sequencer.running_time):
             self.has_changed = True
@@ -216,9 +214,6 @@ class SeqGrid(gui.Screen):
                         self.last_length = abs(n.off.timestamp - n.timestamp)
                         self.last_offset = n.timestamp % 1.0
             return
-
-        if self.modeline.buttons[3].pressed:
-            gui.pop()
 
         for e in events:
             if e.type == pygame.KEYDOWN:
@@ -300,11 +295,7 @@ class SeqGrid(gui.Screen):
         self.step_clicked = step
         self._change_slider()
 
-    def render(self):
-        if not self.has_changed:
-            return None
-        surface = pygame.Surface(settings.SCREEN_SIZE)
-        surface.fill(settings.C_LIGHTER)
+    def _render(self, surface):
         curstep = math.floor(sequencer.running_time % self.part.length)
         self.slider.render(surface)
         for i, step in enumerate(self.steps):

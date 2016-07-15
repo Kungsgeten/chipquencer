@@ -1,12 +1,12 @@
 import midi
 import settings
 import sequencer
-import gui
+import screen
 from modeline import Modeline
 
 import math, pygame
 
-class SeqDrum(gui.Screen):
+class SeqDrum(screen.Screen):
     STEP_SIZE = settings.SCREEN_WIDTH // 16
     def __init__(self, part, notes=None):
         self.part = part
@@ -19,11 +19,13 @@ class SeqDrum(gui.Screen):
         self.modeline = Modeline()
         self.modeline.buttonstrings = ['', '', '', 'Exit']
         self.modeline.text = 'Drum drum...'
+        self.last_curstep = -1
 
-    def update(self, events):
-        self.modeline.update(events)
-        if self.modeline.buttons[3].pressed:
-            gui.pop()
+    def _update(self, events):
+        curstep = math.floor(sequencer.running_time % self.part.length)
+        if curstep != self.last_curstep:
+            self.has_changed = True
+        # self.modeline.update(events)
         for e in events:
             if e.type == pygame.MOUSEBUTTONDOWN:
                 x, y = e.pos
@@ -32,6 +34,7 @@ class SeqDrum(gui.Screen):
                     col = x // self.STEP_SIZE
                     self.grid[row][col] = not self.grid[row][col]
                     note = self.notes[row]
+                    self.has_changed = True
                     if self.grid[row][col]:
                         n = midi.note(note, 120, col, 1)
                         self.part.append_notes([n])
@@ -51,9 +54,7 @@ class SeqDrum(gui.Screen):
                                         break
                         self.part._sort()
 
-    def render(self):
-        surface = pygame.Surface(settings.SCREEN_SIZE)
-        surface.fill(settings.C_LIGHTER)
+    def _render(self, surface):
         curstep = math.floor(sequencer.running_time % self.part.length)
         for row in range(len(self.grid)):
             for col, triggered in enumerate(self.grid[row]):

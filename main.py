@@ -3,8 +3,7 @@ import midi
 import seqgrid
 import seqdrum
 import settings
-import slider
-import gui
+import screen
 import partview
 
 import sys, pygame, math
@@ -29,7 +28,7 @@ sequencer.parts.append(drums)
 
 # Pygame stuff
 
-screen = pygame.display.set_mode(settings.SCREEN_SIZE)
+display = pygame.display.set_mode(settings.SCREEN_SIZE)
 scroll = 40
 
 selected = set([])
@@ -52,17 +51,17 @@ def render_part(part):
             selected.add(note)
         if note in selected:
             rectcolor = (255, 0, 0)
-        pygame.draw.rect(screen, rectcolor, rect)
+        pygame.draw.rect(display, rectcolor, rect)
 
 sequencer.start()
-gui.seqs.append(melgrid)
-gui.seqs.append(drumgrid)
-gui.stack.append(partview.PartView())
+screen.seqs.append(melgrid)
+screen.seqs.append(drumgrid)
+screen.stack.append(partview.PartView())
 
 while 1:
     keysPressed = pygame.key.get_pressed()
     events = pygame.event.get()
-    gui.stack[-1].update(events)
+    screen.stack[-1].update(events)
     for event in events:
         if event.type == pygame.QUIT:
             sequencer.stop()
@@ -85,8 +84,7 @@ while 1:
     sequencer.update()
 
     # render_part(sequencer.parts[part_to_render])
-    surface = gui.stack[-1].render()
+    surface = screen.stack[-1].render()
     if surface is not None:
-        screen.blit(surface, (0, 0))
-        # pygame.draw.rect(screen, (0, 0, 0), rect)
+        display.blit(surface, (0, 0))
         pygame.display.flip()

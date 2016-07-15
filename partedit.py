@@ -4,13 +4,12 @@ import seqgrid
 import seqdrum
 from modeline import Modeline
 import sequencer
-import gui
+import screen
 import settings
 from choicelist import ChoiceList
-from actionbutton import ActionButton
-from counter import Counter
+from gui import ActionButton, Counter
 
-class TextInput(gui.Screen):
+class TextInput(screen.Screen):
     pygame.font.init()
     STRING_HEIGHT = 20
     KEY_HEIGHT = 32
@@ -55,22 +54,21 @@ class TextInput(gui.Screen):
                 self.pos -= 1
         # OK
         elif self.modeline.buttons[3].pressed:
-            gui.pop(**{self.returnkey: self.text})        
+            screen.pop(**{self.returnkey: self.text})
 
-    
-    def update(self, events):
+
+    def _update(self, events):
         self._update_modeline(events)
         for e in events:
             if e.type == pygame.MOUSEBUTTONDOWN:
                 for k in self.keyboard:
                     key, rect = k
                     if rect.collidepoint(e.pos):
+                        self.has_changed = True
                         self.insert_letter(key)
                         return
 
-    def render(self):
-        surface = pygame.Surface(settings.SCREEN_SIZE)
-        surface.fill(settings.C_LIGHTER)
+    def _render(self, surface):
         caption = self.stringfont.render(self.text, False, settings.C_DARKER)
         surface.blit(caption, (0, 0))
 
@@ -85,14 +83,14 @@ class TextInput(gui.Screen):
         letterwidth, letterheight = self.stringfont.size('A')
         caretx = self.pos * letterwidth
         pygame.draw.line(surface, settings.C_DARKEST, (caretx, 0), (caretx, letterheight))
-        
+
         self.modeline.render(surface)
         return surface
 
-class PartEdit(gui.Screen):
+class PartEdit(screen.Screen):
     pygame.font.init()
     font = pygame.font.SysFont('Arial', 16)
-    
+
     def __init__(self, part, sequencer):
         self.part = part
         self.sequencer = sequencer
@@ -104,7 +102,7 @@ class PartEdit(gui.Screen):
 
         # Buttons
         button_size = self.button_width, self.button_height = (80, 27)
-        self.button_spacing = 5        
+        self.button_spacing = 5
         instrument_pos = (self.button_spacing, self.button_spacing)
         self.instrument_button = ActionButton(instrument_pos, button_size, "Instrument")
         name_pos = (self.button_spacing,
@@ -131,30 +129,31 @@ class PartEdit(gui.Screen):
             self.part.channel = 2
             sequencer.parts.append(self.part)
             self.part.start()
-            gui.seqs.append(seqgrid.SeqGrid(self.part))
-            gui.pop()
-            gui.stack[0].update_partrects()
+            screen.seqs.append(seqgrid.SeqGrid(self.part))
+            screen.pop()
+            screen.stack[0].update_partrects()
         elif self.modeline.buttons[1].pressed:
             self.part.channel = 2
             sequencer.parts.append(self.part)
             self.part.start()
-            gui.seqs.append(seqdrum.SeqDrum(self.part))
-            gui.pop()
-            gui.stack[0].update_partrects()
+            screen.seqs.append(seqdrum.SeqDrum(self.part))
+            screen.pop()
+            screen.stack[0].update_partrects()
         elif self.modeline.buttons[3].pressed:
-            gui.pop()        
-            
+            screen.pop()
+
     def _update_buttons(self, events):
         if self.instrument_button.clicked(events):
             instruments = [[name[0], i] for i, name in enumerate(settings.INSTRUMENTS)]
             print instruments
-            gui.stack.append(ChoiceList(instruments, 'Instrument'))
+            screen.stack.append(ChoiceList(instruments, 'Instrument'))
         elif self.name_button.clicked(events):
-            gui.stack.append(TextInput('Part name', self.part.name))
+            screen.stack.append(TextInput('Part name', self.part.name))
         else:
             self.channel_counter.update(events)
-            
-    def update(self, events):
+
+    def _update(self, events):
+        self.has_changed = True
         # if self.inputtext:
         #     self.part.name = self.inputtext
         #     if self.part.name == '':
@@ -170,11 +169,8 @@ class PartEdit(gui.Screen):
         surface.blit(text, (x + self.button_width + self.button_spacing,
                             y))
         button.render(surface)
-                
-    def render(self):
-        surface = pygame.Surface(settings.SCREEN_SIZE)
-        surface.fill(settings.C_LIGHTER)
 
+    def _render(self, surface):
         self._render_button(surface, self.instrument_button, self.instrument_name)
         self._render_button(surface, self.name_button, self.part.name)
 

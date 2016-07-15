@@ -3,10 +3,10 @@ import pygame
 from modeline import Modeline
 import sequencer
 from partedit import PartEdit
-import gui
+import screen
 import settings
 
-class PartView(gui.Screen):
+class PartView(screen.Screen):
     pygame.font.init()
     font = pygame.font.SysFont('04b03', 16)
     PART_BOX_SIZE = 55
@@ -31,8 +31,9 @@ class PartView(gui.Screen):
                (self.PART_BOX_SIZE + self.SPACING) * (i // 4) + self.SPACING)
         rect = pygame.Rect(pos, (self.PART_BOX_SIZE, self.PART_BOX_SIZE))
         self.partrects.append(rect)
-    
-    def update(self, events):
+
+    def _update(self, events):
+        self.has_changed = True
         self.modeline.update(events)
         for e in events:
             if e.type == pygame.MOUSEBUTTONDOWN:
@@ -40,7 +41,7 @@ class PartView(gui.Screen):
                 for i, rect in enumerate(self.partrects):
                     if rect.collidepoint(e.pos):
                         if i == len(self.partrects) - 1:
-                            gui.stack.append(PartEdit(sequencer.Part(), None))
+                            screen.stack.append(PartEdit(sequencer.Part(), None))
                         # Toggle
                         elif self.modeline.buttons[0].down:
                             sequencer.parts[i].toggle = True
@@ -48,12 +49,10 @@ class PartView(gui.Screen):
                         elif self.modeline.buttons[1].down:
                             sequencer.parts[i].mute = not sequencer.parts[i].mute
                         else:
-                            gui.stack.append(gui.seqs[i])
+                            screen.stack.append(screen.seqs[i])
                         return
-    
-    def render(self):
-        surface = pygame.Surface(settings.SCREEN_SIZE)
-        surface.fill(settings.C_LIGHTER)
+
+    def _render(self, surface):
         # Render part boxes
         for i, part in enumerate(sequencer.parts):
             rect = self.partrects[i]

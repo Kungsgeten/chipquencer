@@ -38,8 +38,11 @@ class Screen:
 
     def render(self):
         """Things that happen before the _render method."""
-        if not self.has_changed:
-            return None
+        try:
+            if not self.has_changed:
+                return None
+        except:
+            self.has_changed = True
         surface = pygame.Surface(settings.SCREEN_SIZE)
         surface.fill(settings.C_LIGHTER)
         return self._render(surface)
