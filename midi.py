@@ -17,6 +17,16 @@ MC_STOP = 0xFC
 NOTES = {0:'C ', 1:'C#', 2:'D ', 3:'D#', 4:'E ', 5:'F ',
          6:'F#', 7:'G ', 8:'G#', 9:'A ', 10:'A#', 11:'B '}
 
+# Velocity
+PPP = 16
+PP = 32
+P = 48
+MP = 64
+MF = 80
+F = 96
+FF = 112
+FFF = 127
+
 out = 0
 
 class MidiEvent:

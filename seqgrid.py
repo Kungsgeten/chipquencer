@@ -8,62 +8,77 @@ from modeline import Modeline
 
 import math, pygame, copy
 
-class Keyboard():
-    pygame.font.init()
-    font = pygame.font.SysFont('04b03', 10)
-    KEY_WIDTH = 20
-    KEY_HEIGHT = 40
+# class Keyboard():
+#     pygame.font.init()
+#     font = pygame.font.SysFont('04b03', 10)
+#     KEY_WIDTH = 20
+#     KEY_HEIGHT = 40
 
-    def __init__(self):
-        self.scale = [0, 2, 4, 5, 7, 9, 11]
-        self.octave = 5
-        self._init_keys()
+#     def __init__(self):
+#         self.scale = [0, 2, 4, 5, 7, 9, 11]
+#         self.octave = 5
+#         self._init_keys()
 
-    def _init_keys(self):
-        self.keys = []
-        for i in range(settings.SCREEN_WIDTH // self.KEY_WIDTH):
-            rect = pygame.Rect(i * self.KEY_WIDTH, 0, self.KEY_WIDTH, self.KEY_HEIGHT)
-            tone = self.scale[i % len(self.scale)] + (i // len(self.scale)) * 12
-            self.keys.append((rect, tone))
+#     def _init_keys(self):
+#         self.keys = []
+#         for i in range(settings.SCREEN_WIDTH // self.KEY_WIDTH):
+#             rect = pygame.Rect(i * self.KEY_WIDTH, 0, self.KEY_WIDTH, self.KEY_HEIGHT)
+#             tone = self.scale[i % len(self.scale)] + (i // len(self.scale)) * 12
+#             self.keys.append((rect, tone))
 
-    def update(self, events, ypos=0):
-        for e in events:
-            if e.type == pygame.MOUSEBUTTONDOWN:
-                for key in self.keys:
-                    rect, tone = key
-                    # FIX: Ugly hack
-                    x, y = e.pos
-                    y -= ypos
-                    pos = x, y
-                    if rect.collidepoint(pos):
-                        return tone + self.octave * 12
-        return None
+#     def update(self, events, ypos=0):
+#         for e in events:
+#             if e.type == pygame.MOUSEBUTTONDOWN:
+#                 for key in self.keys:
+#                     rect, tone = key
+#                     # FIX: Ugly hack
+#                     x, y = e.pos
+#                     y -= ypos
+#                     pos = x, y
+#                     if rect.collidepoint(pos):
+#                         return tone + self.octave * 12
+#         return None
 
-    def render(self):
-        surface = pygame.Surface((len(self.keys) * self.KEY_WIDTH,
-                                  self.KEY_HEIGHT))
-        surface.fill(settings.C_PRIMARY)
-        for key in self.keys:
-            rect, tone = key
-            root = tone % 12 == self.scale[0] % 12
-            pygame.draw.rect(surface, settings.C_DARKER, rect, 1 - root)
-            text = self.font.render(midi.note_to_string(tone)[:2], False, settings.C_LIGHTEST)
-            surface.blit(text, (rect.x + 2, rect.y + self.KEY_HEIGHT - text.get_height()))
-        return surface
+#     def render(self):
+#         surface = pygame.Surface((len(self.keys) * self.KEY_WIDTH,
+#                                   self.KEY_HEIGHT))
+#         surface.fill(settings.C_PRIMARY)
+#         for key in self.keys:
+#             rect, tone = key
+#             root = tone % 12 == self.scale[0] % 12
+#             pygame.draw.rect(surface, settings.C_DARKER, rect, 1 - root)
+#             text = self.font.render(midi.note_to_string(tone)[:2], False, settings.C_LIGHTEST)
+#             surface.blit(text, (rect.x + 2, rect.y + self.KEY_HEIGHT - text.get_height()))
+#         return surface
 
 class SeqGrid(screen.Screen):
     pygame.font.init()
     font = pygame.font.SysFont('04b03', 10)
     step_clicked = -1
-    STEP_SIZE = (settings.SCREEN_HEIGHT - Keyboard.KEY_HEIGHT - Modeline.HEIGHT) // 4 # width/height of step rect
-    VEL_PRESETS = {0: 32, 1: 48,
-                   2: 64, 3: 80,
-                   4: 96, 5: 112} # pp, p, mp, mf, f, ff
+    STEP_SIZE = (settings.SCREEN_HEIGHT - Modeline.HEIGHT) // 4 # width/height of step rect
+    VEL_PRESETS = {0: midi.PP, 1: midi.P,
+                   2: midi.MP, 3: midi.MF,
+                   4: midi.F,  5: midi.FF}
+    # '2', '4', '8', '16', '32', '.'
     LEN_PRESETS = {0: 8,
                    1: 4,
                    2: 2,
                    3: 1,
-                   4: 0.5} # '2', '4', '8', '16', '32', '.'
+                   4: 0.5}
+
+    KEYBOARD_KEYS = {'z': 0,
+                     's': 1,
+                     'x': 2,
+                     'd': 3,
+                     'c': 4,
+                     'v': 5,
+                     'g': 6,
+                     'b': 7,
+                     'h': 8,
+                     'n': 9,
+                     'j': 10,
+                     'm': 11,
+                     '.': 12}
 
     class Radio:
         VELOCITY = 0
@@ -71,7 +86,6 @@ class SeqGrid(screen.Screen):
         OFFSET = 2
 
     def __init__(self, part):
-        self.keyboard = Keyboard()
         self.modeline = Modeline()
         self.modeline.buttonstrings = ['Shift', 'Options', 'Mode', 'Exit']
         self.modeline.text = 'Measure 1'
@@ -88,7 +102,7 @@ class SeqGrid(screen.Screen):
         self.last_step = -1 # step the prior update
         SLIDER_WIDTH = 30
         self.slider = Slider(pygame.Rect(settings.SCREEN_WIDTH - SLIDER_WIDTH - 8,
-                                         settings.SCREEN_HEIGHT - Keyboard.KEY_HEIGHT - 143,
+                                         settings.SCREEN_HEIGHT - 143,
                                          SLIDER_WIDTH,
                                          127))
         strings = 'Vel', 'Len', 'Off'
@@ -101,6 +115,8 @@ class SeqGrid(screen.Screen):
         self.last_length = 1.0
         self.last_offset = 0.0
         self._change_slider()
+
+        self.keyboard_root = 60
 
     def copy_step(self, original, target):
         distance = target - original
@@ -138,6 +154,26 @@ class SeqGrid(screen.Screen):
         self.part._sort()
         # self.part.start()
 
+    def keydown_events(self, keyevents):
+        for e in keyevents:
+            if e.unicode in self.KEYBOARD_KEYS:
+                note = self.keyboard_root + self.KEYBOARD_KEYS[e.unicode]
+                midi.out.write_short(self.part.channel + midi.NOTE_ON, note, 127)
+            elif e.key == pygame.K_TAB:
+                self.keyboard_root -= 12
+            elif e.key == pygame.K_RETURN:
+                self.keyboard_root += 12
+            elif e.key == pygame.K_a:
+                self.keyboard_root -= 1
+            elif e.key == pygame.K_l:
+                self.keyboard_root += 1
+
+    def keyup_events(self, keyevents):
+        for e in keyevents:
+            if pygame.key.name(e.key) in self.KEYBOARD_KEYS:
+                note = self.keyboard_root + self.KEYBOARD_KEYS[pygame.key.name(e.key)]
+                midi.out.write_short(self.part.channel + midi.NOTE_ON, note, 0)
+
     def _update(self, events):
         # self.modeline.update(events)
         # New step?
@@ -145,22 +181,26 @@ class SeqGrid(screen.Screen):
             self.has_changed = True
         self.last_step = math.floor(sequencer.running_time)
 
+        # Keyboard events
+        self.keydown_events((e for e in events if e.type == pygame.KEYDOWN))
+        self.keyup_events((e for e in events if e.type == pygame.KEYUP))
+
         # Keyboard
-        keytone = self.keyboard.update(events, self.steps[-1][0].bottom)
-        if keytone:
-            self.has_changed = True
-            new_note = True
-            for step in self.selected:
-                for i, n in enumerate(self.steps[step][1]):
-                    if self.chordnote < 0 or i == self.chordnote:
-                        n.set_note(keytone)
-                        new_note = False
-            if new_note:
-                n = midi.note(keytone, self.last_vel, step + self.last_offset, self.last_length)
-                self.part.append_notes([n])
-                self.steps[step][1].append(n[0])
-                self._change_slider()
-            return
+        # keytone = self.keyboard.update(events, self.steps[-1][0].bottom)
+        # if keytone:
+        #     self.has_changed = True
+        #     new_note = True
+        #     for step in self.selected:
+        #         for i, n in enumerate(self.steps[step][1]):
+        #             if self.chordnote < 0 or i == self.chordnote:
+        #                 n.set_note(keytone)
+        #                 new_note = False
+        #     if new_note:
+        #         n = midi.note(keytone, self.last_vel, step + self.last_offset, self.last_length)
+        #         self.part.append_notes([n])
+        #         self.steps[step][1].append(n[0])
+        #         self._change_slider()
+        #     return
 
         # Radio Buttons
         clicked = self.radios.update(events)
@@ -216,29 +256,29 @@ class SeqGrid(screen.Screen):
             return
 
         for e in events:
-            if e.type == pygame.KEYDOWN:
-                self.has_changed = True
-                # if e.key == pygame.K_z:
-                #     for step in self.selected:
-                #         n = midi.note(60, 100, step, 1)
-                #         self.part.append_notes([n])
-                #         self.steps[step][1].append(n[0])
-                #         self._change_slider()
-                if e.key == pygame.K_b:
-                    print 'Debug:'
-                    self.part.debug()
-                    # for n in self.part.note_elements():
-                    #     print n
-                # elif e.key == pygame.K_LEFT:
-                #     if len(self.selected) == 1 and len(self.steps[self.selected[0]][1]) > 1:
-                #         self._change_slider()
-                #         self.chordnote += 1
-                #         if self.chordnote >= len(self.steps[self.selected[0]][1]):
-                #             self.chordnote = 0
-                # elif e.key == pygame.K_DELETE:
-                #     for step in self.selected:
-                #         self.delete_step(step)
-            elif e.type == pygame.MOUSEBUTTONDOWN:
+            # if e.type == pygame.KEYDOWN:
+            #     self.has_changed = True
+            #     # if e.key == pygame.K_z:
+            #     #     for step in self.selected:
+            #     #         n = midi.note(60, 100, step, 1)
+            #     #         self.part.append_notes([n])
+            #     #         self.steps[step][1].append(n[0])
+            #     #         self._change_slider()
+            #     if e.key == pygame.K_b:
+            #         print 'Debug:'
+            #         self.part.debug()
+            #         # for n in self.part.note_elements():
+            #         #     print n
+            #     # elif e.key == pygame.K_LEFT:
+            #     #     if len(self.selected) == 1 and len(self.steps[self.selected[0]][1]) > 1:
+            #     #         self._change_slider()
+            #     #         self.chordnote += 1
+            #     #         if self.chordnote >= len(self.steps[self.selected[0]][1]):
+            #     #             self.chordnote = 0
+            #     # elif e.key == pygame.K_DELETE:
+            #     #     for step in self.selected:
+            #     #         self.delete_step(step)
+            if e.type == pygame.MOUSEBUTTONDOWN:
                 if pygame.Rect(0, 0, self.STEP_SIZE * 4, self.STEP_SIZE * 4).collidepoint(e.pos):
                     self.preset_radios.selected = -1
                     self.selected = []
@@ -347,7 +387,6 @@ class SeqGrid(screen.Screen):
         # "Presets" for note option buttons
         self.preset_radios.render(surface)
         self.radios.render(surface)
-        surface.blit(self.keyboard.render(), (0, self.steps[-1][0].bottom))
         self.modeline.render(surface)
 
         return surface
