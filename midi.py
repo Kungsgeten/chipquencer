@@ -105,7 +105,7 @@ def init():
     global out
     pygame.midi.init()
     print outDevices()
-    out = pygame.midi.Output(0)
+    out = pygame.midi.Output(2)
     # for od in outDevices():
     #     if 'CME U2MIDI' == od[0]:
     #         out = pygame.midi.Output(od[1])
