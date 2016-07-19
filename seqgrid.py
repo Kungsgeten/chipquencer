@@ -85,6 +85,11 @@ class SeqGrid(screen.Screen):
         LENGTH = 1
         OFFSET = 2
 
+    class KeyboardMode:
+        PLAY = 0
+        STEP = 1
+        REAL_TIME = 2
+
     def __init__(self, part):
         self.modeline = Modeline()
         self.modeline.buttonstrings = ['Shift', 'Options', 'Mode', 'Exit']
@@ -122,6 +127,7 @@ class SeqGrid(screen.Screen):
         self._change_slider()
 
         self.keyboard_root = 60
+        self.keyboard_mode = self.KeyboardMode.STEP
 
     def copy_step(self, original, target):
         distance = target - original
@@ -164,11 +170,40 @@ class SeqGrid(screen.Screen):
         self.part._sort()
         # self.part.start()
 
+    def keyboard_play(self, note):
+        midi.out.write_short(self.part.channel + midi.NOTE_ON, note, 127)
+        # if self.keyboard_mode is self.KeyboardMode.PLAY:
+        #     midi.out.write_short(self.part.channel + midi.NOTE_ON, note, 127)
+        if self.keyboard_mode is self.KeyboardMode.STEP:
+            new_note = True
+            for step in self.selected:
+                for i, n in enumerate(self.steps[step][1]):
+                    if self.chordnote < 0 or i == self.chordnote:
+                        n.set_note(note)
+                        new_note = False
+            if new_note:
+                n = midi.note(note,
+                              self.last_vel,
+                              step + self.last_offset,
+                              self.last_length)
+                self.part.append_notes([n])
+                self.steps[step][1].append(n[0])
+                self._change_slider()
+        elif self.keyboard_mode is self.KeyboardMode.REAL_TIME:
+            step = int(self.last_step % self.part.length)
+            n = midi.note(note,
+                          self.last_vel,
+                          step + self.last_offset,
+                          self.last_length)
+            self.part.append_notes([n])
+            self.steps[step][1].append(n[0])
+            self._change_slider()
+
     def keydown_events(self, keyevents):
         for e in keyevents:
             if e.unicode in self.KEYBOARD_KEYS:
                 note = self.keyboard_root + self.KEYBOARD_KEYS[e.unicode]
-                midi.out.write_short(self.part.channel + midi.NOTE_ON, note, 127)
+                self.keyboard_play(note)
             elif e.key == pygame.K_TAB:
                 self.keyboard_root -= 12
             elif e.key == pygame.K_RETURN:
@@ -179,11 +214,12 @@ class SeqGrid(screen.Screen):
                 self.keyboard_root += 1
 
     def keyup_events(self, keyevents):
-        for e in keyevents:
-            key = pygame.key.name(e.key)
-            if key in self.KEYBOARD_KEYS:
-                note = self.keyboard_root + self.KEYBOARD_KEYS[key]
-                midi.out.write_short(self.part.channel + midi.NOTE_ON, note, 0)
+        if self.keyboard_mode == self.KeyboardMode.PLAY:
+            for e in keyevents:
+                key = pygame.key.name(e.key)
+                if key in self.KEYBOARD_KEYS:
+                    note = self.keyboard_root + self.KEYBOARD_KEYS[key]
+                    midi.out.write_short(self.part.channel + midi.NOTE_ON, note, 0)
 
     def _update(self, events):
         # self.modeline.update(events)
