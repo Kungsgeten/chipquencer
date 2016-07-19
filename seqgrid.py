@@ -90,16 +90,20 @@ class SeqGrid(screen.Screen):
         self.modeline.buttonstrings = ['Shift', 'Options', 'Mode', 'Exit']
         self.modeline.text = 'Measure 1'
         self.part = part
-        self.steps = [] # each step has a rectangle and a list of events
+        # each step has a rectangle and a list of events
+        self.steps = []
         for i in range(part.length):
             row = i // 4
             col = i % 4
             pos = (col * self.STEP_SIZE, row * self.STEP_SIZE)
-            self.steps.append([pygame.Rect(pos, (self.STEP_SIZE, self.STEP_SIZE)), list()])
+            self.steps.append([pygame.Rect(pos, (self.STEP_SIZE,
+                                                 self.STEP_SIZE)), list()])
         self.notes_to_steps()
-        self.selected = [0] # selected step numbers
-        self.chordnote = -1 # which note of a chord we're editing. negative = all
-        self.last_step = -1 # step the prior update
+        # selected step numbers
+        self.selected = [0]
+        # which note of a chord we're editing. negative = all
+        self.chordnote = -1
+        self.last_step = -1
         SLIDER_WIDTH = 30
         self.slider = Slider(pygame.Rect(settings.SCREEN_WIDTH - SLIDER_WIDTH - 8,
                                          settings.SCREEN_HEIGHT - 143,
@@ -109,7 +113,8 @@ class SeqGrid(screen.Screen):
         distance = 2
         self.radios = RadioButtons((self.STEP_SIZE*4 + distance, distance),
                                    (41, 45), 3, 1, strings, distance)
-        self.preset_radios = RadioButtons((self.STEP_SIZE*4 + distance, distance*4 + 41),
+        self.preset_radios = RadioButtons((self.STEP_SIZE*4 + distance,
+                                           distance * 4 + 41),
                                           (41, 41), 2, 3, [], distance)
         self.last_vel = 120
         self.last_length = 1.0
@@ -122,10 +127,15 @@ class SeqGrid(screen.Screen):
         distance = target - original
         self.delete_step(target)
         for event in self.steps[original][1]:
-            copy = midi.MidiEvent(event.status, event.data1, event.data2, event.timestamp + distance)
+            copy = midi.MidiEvent(event.status,
+                                  event.data1,
+                                  event.data2,
+                                  event.timestamp + distance)
             if event.off:
-                offcopy = midi.MidiEvent(event.off.status, event.off.data1,
-                                         event.off.data2, event.off.timestamp + distance)
+                offcopy = midi.MidiEvent(event.off.status,
+                                         event.off.data1,
+                                         event.off.data2,
+                                         event.off.timestamp + distance)
                 copy.off = offcopy
                 self.part.append([offcopy])
             self.part.append([copy])
@@ -170,8 +180,9 @@ class SeqGrid(screen.Screen):
 
     def keyup_events(self, keyevents):
         for e in keyevents:
-            if pygame.key.name(e.key) in self.KEYBOARD_KEYS:
-                note = self.keyboard_root + self.KEYBOARD_KEYS[pygame.key.name(e.key)]
+            key = pygame.key.name(e.key)
+            if key in self.KEYBOARD_KEYS:
+                note = self.keyboard_root + self.KEYBOARD_KEYS[key]
                 midi.out.write_short(self.part.channel + midi.NOTE_ON, note, 0)
 
     def _update(self, events):
