@@ -66,19 +66,19 @@ class SeqGrid(screen.Screen):
                    3: 1,
                    4: 0.5}
 
-    KEYBOARD_KEYS = {'z': 0,
-                     's': 1,
-                     'x': 2,
-                     'd': 3,
-                     'c': 4,
-                     'v': 5,
-                     'g': 6,
-                     'b': 7,
-                     'h': 8,
-                     'n': 9,
-                     'j': 10,
-                     'm': 11,
-                     '.': 12}
+    KEYBOARD_KEYS = {pygame.K_z: 0,
+                     pygame.K_s: 1,
+                     pygame.K_x: 2,
+                     pygame.K_d: 3,
+                     pygame.K_c: 4,
+                     pygame.K_v: 5,
+                     pygame.K_g: 6,
+                     pygame.K_b: 7,
+                     pygame.K_h: 8,
+                     pygame.K_n: 9,
+                     pygame.K_j: 10,
+                     pygame.K_m: 11,
+                     pygame.K_PERIOD: 12}
 
     class Radio:
         VELOCITY = 0
@@ -89,6 +89,7 @@ class SeqGrid(screen.Screen):
         PLAY = 0
         STEP = 1
         REAL_TIME = 2
+        HOLD_CLICK = 3 # Hold a key and click on the step
 
     def __init__(self, part):
         self.modeline = Modeline()
@@ -127,7 +128,7 @@ class SeqGrid(screen.Screen):
         self._change_slider()
 
         self.keyboard_root = 60
-        self.keyboard_mode = self.KeyboardMode.STEP
+        self.keyboard_mode = self.KeyboardMode.HOLD_CLICK
 
     def copy_step(self, original, target):
         distance = target - original
@@ -201,8 +202,8 @@ class SeqGrid(screen.Screen):
 
     def keydown_events(self, keyevents):
         for e in keyevents:
-            if e.unicode in self.KEYBOARD_KEYS:
-                note = self.keyboard_root + self.KEYBOARD_KEYS[e.unicode]
+            if e.key in self.KEYBOARD_KEYS:
+                note = self.keyboard_root + self.KEYBOARD_KEYS[e.key]
                 self.keyboard_play(note)
             elif e.key == pygame.K_TAB:
                 self.keyboard_root -= 12
@@ -214,12 +215,10 @@ class SeqGrid(screen.Screen):
                 self.keyboard_root += 1
 
     def keyup_events(self, keyevents):
-        if self.keyboard_mode == self.KeyboardMode.PLAY:
-            for e in keyevents:
-                key = pygame.key.name(e.key)
-                if key in self.KEYBOARD_KEYS:
-                    note = self.keyboard_root + self.KEYBOARD_KEYS[key]
-                    midi.out.write_short(self.part.channel + midi.NOTE_ON, note, 0)
+        for e in keyevents:
+            if e.key in self.KEYBOARD_KEYS:
+                note = self.keyboard_root + self.KEYBOARD_KEYS[e.key]
+                midi.out.write_short(self.part.channel + midi.NOTE_ON, note, 0)
 
     def _update(self, events):
         # self.modeline.update(events)
@@ -380,6 +379,19 @@ class SeqGrid(screen.Screen):
         self.selected.append(step)
         self.chordnote = -1
         self.step_clicked = step
+        if self.keyboard_mode is self.KeyboardMode.HOLD_CLICK:
+            notes = []
+            pressed_keys = pygame.key.get_pressed()
+            for key in self.KEYBOARD_KEYS.keys():
+                if pressed_keys[key]:
+                    notes.append(self.keyboard_root + self.KEYBOARD_KEYS[key])
+            for note in notes:
+                n = midi.note(note,
+                              self.last_vel,
+                              step + self.last_offset,
+                              self.last_length)
+                self.part.append_notes([n])
+                self.steps[step][1].append(n[0])
         self._change_slider()
 
     def _render(self, surface):
