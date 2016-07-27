@@ -1,5 +1,6 @@
-import settings
 import screen
+import gui
+
 from modeline import Modeline
 
 import pygame
@@ -17,20 +18,20 @@ class ChoiceList(screen.Screen):
         self.modeline.buttonstrings = ['', '', '', 'Cancel']
         self.modeline.text = modelinetext
         self.rects = []
-        self.listsurface = pygame.Surface((settings.SCREEN_WIDTH - self.SCROLL_WIDTH,
+        self.listsurface = pygame.Surface((gui.SCREEN_WIDTH - self.SCROLL_WIDTH,
                                        self.ITEM_HEIGHT * len(choices)))
-        self.listsurface.fill(settings.C_LIGHTER)
+        self.listsurface.fill(gui.C_LIGHTER)
         self.scrolled = 0 # pixels scrolled
         for i, choice in enumerate(choices):
             rect = pygame.Rect((0, i * self.ITEM_HEIGHT),
-                               (settings.SCREEN_WIDTH - self.SCROLL_WIDTH,
+                               (gui.SCREEN_WIDTH - self.SCROLL_WIDTH,
                                 self.ITEM_HEIGHT))
             self.rects.append(rect)
-            pygame.draw.rect(self.listsurface, settings.C_PRIMARY, rect, 1)
+            pygame.draw.rect(self.listsurface, gui.C_PRIMARY, rect, 1)
             if type(choice) is list:
-                text = self.font.render(choice[0], False, settings.C_DARKER)
+                text = self.font.render(choice[0], False, gui.C_DARKER)
             else:
-                text = self.font.render(choice, False, settings.C_DARKER)
+                text = self.font.render(choice, False, gui.C_DARKER)
             self.listsurface.blit(text, (0, i * self.ITEM_HEIGHT))
 
     def _update(self, events):
@@ -39,7 +40,7 @@ class ChoiceList(screen.Screen):
             if e.type == pygame.MOUSEBUTTONDOWN:
                 x, y = e.pos
                 pygame.mouse.get_rel()
-                if x < settings.SCREEN_WIDTH - self.SCROLL_WIDTH:
+                if x < gui.SCREEN_WIDTH - self.SCROLL_WIDTH:
                     index_clicked = (y + self.scrolled) // self.ITEM_HEIGHT
                     if index_clicked >= len(self.choices):
                         return
@@ -56,7 +57,7 @@ class ChoiceList(screen.Screen):
                 self.has_changed = True
                 relx, rely = pygame.mouse.get_rel()
                 self.scrolled -= rely * 3
-                listheight = len(self.choices) * self.ITEM_HEIGHT - settings.SCREEN_HEIGHT + self.modeline.HEIGHT
+                listheight = len(self.choices) * self.ITEM_HEIGHT - gui.SCREEN_HEIGHT + self.modeline.HEIGHT
                 if self.scrolled > 0:
                     self.scrolled = 0
                 elif abs(self.scrolled) > listheight:

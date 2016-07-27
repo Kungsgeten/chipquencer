@@ -3,6 +3,7 @@ import midi
 import seqgrid
 import seqdrum
 import settings
+import gui
 import screen
 import partview
 
@@ -11,7 +12,6 @@ import sys, pygame, math
 # Setup
 
 midi.init()
-settings.load_colors()
 settings.load_instruments()
 
 melody = sequencer.Part()
@@ -28,7 +28,7 @@ sequencer.parts.append(drums)
 
 # Pygame stuff
 
-display = pygame.display.set_mode(settings.SCREEN_SIZE)
+display = pygame.display.set_mode(gui.SCREEN_SIZE)
 scroll = 40
 
 selected = set([])

@@ -1,13 +1,13 @@
 import midi
-import settings
 import sequencer
 import screen
+import gui
 from modeline import Modeline
 
 import math, pygame
 
 class SeqDrum(screen.Screen):
-    STEP_SIZE = settings.SCREEN_WIDTH // 16
+    STEP_SIZE = gui.SCREEN_WIDTH // 16
     def __init__(self, part, notes=None):
         self.part = part
         self.steps = []
@@ -60,11 +60,11 @@ class SeqDrum(screen.Screen):
             for col, triggered in enumerate(self.grid[row]):
                 pos = ((col % 16) * self.STEP_SIZE, row * self.STEP_SIZE)
                 rect = pygame.Rect(pos, (self.STEP_SIZE, self.STEP_SIZE))
-                rectcolor = settings.C_PRIMARY
+                rectcolor = gui.C_PRIMARY
                 if col % 4 == 0:
-                    rectcolor = settings.C_DARKER
+                    rectcolor = gui.C_DARKER
                 if curstep == col:
-                    rectcolor = settings.C_LIGHTEST
+                    rectcolor = gui.C_LIGHTEST
                 pygame.draw.rect(surface, rectcolor, rect, 1 - triggered)
         self.modeline.render(surface)
         return surface

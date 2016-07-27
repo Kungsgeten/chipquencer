@@ -1,10 +1,11 @@
 import pygame
 
-from modeline import Modeline
 import sequencer
-from partedit import PartEdit
 import screen
-import settings
+import gui
+
+from modeline import Modeline
+from partedit import PartEdit
 
 class PartView(screen.Screen):
     pygame.font.init()
@@ -57,22 +58,22 @@ class PartView(screen.Screen):
         for i, part in enumerate(sequencer.parts):
             rect = self.partrects[i]
             if part.toggle:
-                rectcolor = settings.C_DARKEST
+                rectcolor = gui.C_DARKEST
             else:
-                rectcolor = settings.C_DARKER
+                rectcolor = gui.C_DARKER
             pygame.draw.rect(surface, rectcolor, rect, True)
             pos = rect.topleft
             text = self.font.render(part.name, False, rectcolor)
             surface.blit(text, pos)
             # Playtime
             played_x = ((sequencer.running_time % part.length) / part.length) * self.PART_BOX_SIZE + rect.x
-            pygame.draw.line(surface, settings.C_PRIMARY, (played_x, rect.top), (played_x, rect.bottom))
+            pygame.draw.line(surface, gui.C_PRIMARY, (played_x, rect.top), (played_x, rect.bottom))
             if part.mute:
                 pygame.draw.line(surface, rectcolor, rect.topleft, rect.bottomright)
                 pygame.draw.line(surface, rectcolor, rect.topright, rect.bottomleft)
         # Add box
         rect = self.partrects[-1]
-        rectcolor = settings.C_DARKER
+        rectcolor = gui.C_DARKER
         pygame.draw.rect(surface, rectcolor, rect, True)
         centerx, centery = rect.center
         OFFSET = (self.PART_BOX_SIZE * 0.8) / 2

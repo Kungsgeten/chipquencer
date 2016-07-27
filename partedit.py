@@ -2,10 +2,12 @@ import pygame
 
 import seqgrid
 import seqdrum
-from modeline import Modeline
 import sequencer
 import screen
 import settings
+import gui
+
+from modeline import Modeline
 from choicelist import ChoiceList
 from gui import ActionButton, Counter
 
@@ -69,20 +71,20 @@ class TextInput(screen.Screen):
                         return
 
     def _render(self, surface):
-        caption = self.stringfont.render(self.text, False, settings.C_DARKER)
+        caption = self.stringfont.render(self.text, False, gui.C_DARKER)
         surface.blit(caption, (0, 0))
 
         for k in self.keyboard:
             key, rect = k
             pos = rect.topleft
-            rectcolor = settings.C_PRIMARY
+            rectcolor = gui.C_PRIMARY
             pygame.draw.rect(surface, rectcolor, rect, True)
-            cap = self.keyfont.render(key, False, settings.C_DARKER)
+            cap = self.keyfont.render(key, False, gui.C_DARKER)
             surface.blit(cap, pos)
 
         letterwidth, letterheight = self.stringfont.size('A')
         caretx = self.pos * letterwidth
-        pygame.draw.line(surface, settings.C_DARKEST, (caretx, 0), (caretx, letterheight))
+        pygame.draw.line(surface, gui.C_DARKEST, (caretx, 0), (caretx, letterheight))
 
         self.modeline.render(surface)
         return surface
@@ -163,7 +165,7 @@ class PartEdit(screen.Screen):
         self._update_buttons(events)
 
     def _render_button(self, surface, button, text):
-        text = self.font.render(text, False, settings.C_DARKER)
+        text = self.font.render(text, False, gui.C_DARKER)
         x = button.rect.x
         y = button.rect.y
         surface.blit(text, (x + self.button_width + self.button_spacing,

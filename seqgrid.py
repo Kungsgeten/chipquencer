@@ -1,7 +1,7 @@
 import midi
-import settings
 import sequencer
 import screen
+import gui
 
 from gui import RadioButtons, Slider
 from modeline import Modeline
@@ -21,7 +21,7 @@ import math, pygame, copy
 
 #     def _init_keys(self):
 #         self.keys = []
-#         for i in range(settings.SCREEN_WIDTH // self.KEY_WIDTH):
+#         for i in range(gui.SCREEN_WIDTH // self.KEY_WIDTH):
 #             rect = pygame.Rect(i * self.KEY_WIDTH, 0, self.KEY_WIDTH, self.KEY_HEIGHT)
 #             tone = self.scale[i % len(self.scale)] + (i // len(self.scale)) * 12
 #             self.keys.append((rect, tone))
@@ -42,12 +42,12 @@ import math, pygame, copy
 #     def render(self):
 #         surface = pygame.Surface((len(self.keys) * self.KEY_WIDTH,
 #                                   self.KEY_HEIGHT))
-#         surface.fill(settings.C_PRIMARY)
+#         surface.fill(gui.C_PRIMARY)
 #         for key in self.keys:
 #             rect, tone = key
 #             root = tone % 12 == self.scale[0] % 12
-#             pygame.draw.rect(surface, settings.C_DARKER, rect, 1 - root)
-#             text = self.font.render(midi.note_to_string(tone)[:2], False, settings.C_LIGHTEST)
+#             pygame.draw.rect(surface, gui.C_DARKER, rect, 1 - root)
+#             text = self.font.render(midi.note_to_string(tone)[:2], False, gui.C_LIGHTEST)
 #             surface.blit(text, (rect.x + 2, rect.y + self.KEY_HEIGHT - text.get_height()))
 #         return surface
 
@@ -55,7 +55,7 @@ class SeqGrid(screen.Screen):
     pygame.font.init()
     font = pygame.font.SysFont('04b03', 10)
     step_clicked = -1
-    STEP_SIZE = (settings.SCREEN_HEIGHT - Modeline.HEIGHT) // 4 # width/height of step rect
+    STEP_SIZE = (gui.SCREEN_HEIGHT - Modeline.HEIGHT) // 4 # width/height of step rect
     VEL_PRESETS = {0: midi.PP, 1: midi.P,
                    2: midi.MP, 3: midi.MF,
                    4: midi.F,  5: midi.FF}
@@ -111,8 +111,8 @@ class SeqGrid(screen.Screen):
         self.chordnote = -1
         self.last_step = -1
         SLIDER_WIDTH = 30
-        self.slider = Slider(pygame.Rect(settings.SCREEN_WIDTH - SLIDER_WIDTH - 8,
-                                         settings.SCREEN_HEIGHT - 143,
+        self.slider = Slider(pygame.Rect(gui.SCREEN_WIDTH - SLIDER_WIDTH - 8,
+                                         gui.SCREEN_HEIGHT - 143,
                                          SLIDER_WIDTH,
                                          127))
         strings = 'Vel', 'Len', 'Off'
@@ -128,7 +128,7 @@ class SeqGrid(screen.Screen):
         self._change_slider()
 
         self.keyboard_root = 60
-        self.keyboard_mode = self.KeyboardMode.HOLD_CLICK
+        self.keyboard_mode = self.KeyboardMode.REAL_TIME
 
     def copy_step(self, original, target):
         distance = target - original
@@ -191,7 +191,8 @@ class SeqGrid(screen.Screen):
                 self.steps[step][1].append(n[0])
                 self._change_slider()
         elif self.keyboard_mode is self.KeyboardMode.REAL_TIME:
-            step = int(self.last_step % self.part.length)
+            # Quantize step
+            step = int(round(sequencer.running_time)) % self.part.length
             n = midi.note(note,
                           self.last_vel,
                           step + self.last_offset,
@@ -399,9 +400,9 @@ class SeqGrid(screen.Screen):
         self.slider.render(surface)
         for i, step in enumerate(self.steps):
             rect, events = step
-            rectcolor = settings.C_PRIMARY
+            rectcolor = gui.C_PRIMARY
             if curstep == i:
-                rectcolor = settings.C_DARKEST
+                rectcolor = gui.C_DARKEST
             selected = i in self.selected
             pygame.draw.rect(surface, rectcolor, rect, 1 - (selected or curstep == i)) # step square
             # Render length of selected step (based on length slider)
@@ -413,23 +414,23 @@ class SeqGrid(screen.Screen):
                     pixel_length -= (self.STEP_SIZE * 4) - x
                     width = (self.STEP_SIZE * 4) - x
                     lenrect = pygame.Rect(x, y, width, self.STEP_SIZE / 2)
-                    pygame.draw.rect(surface, settings.C_DARKER, lenrect, False)
+                    pygame.draw.rect(surface, gui.C_DARKER, lenrect, False)
                     x = 0
                     y = (y + self.STEP_SIZE) % (self.STEP_SIZE * 4)
                 if pixel_length:
                     lenrect = pygame.Rect(x, y, pixel_length, self.STEP_SIZE / 2)
-                    pygame.draw.rect(surface, settings.C_DARKER, lenrect, False)
+                    pygame.draw.rect(surface, gui.C_DARKER, lenrect, False)
             # Render offset position
             elif self.radios.selected == self.Radio.OFFSET and selected:
                 x = rect.x + self.slider.get_data() * self.STEP_SIZE
                 y = rect.y
-                pygame.draw.line(surface, settings.C_DARKER, (x, y), (x, y + self.STEP_SIZE))
+                pygame.draw.line(surface, gui.C_DARKER, (x, y), (x, y + self.STEP_SIZE))
             # Render velocity level
             elif self.radios.selected == self.Radio.VELOCITY and selected:
                 x = rect.x + self.STEP_SIZE * 0.25
                 y = rect.y + self.STEP_SIZE - self.STEP_SIZE * self.slider.get_data()
                 velrect = pygame.Rect(x, y, self.STEP_SIZE / 2, self.STEP_SIZE * self.slider.get_data())
-                pygame.draw.rect(surface, settings.C_DARKER, velrect, False)
+                pygame.draw.rect(surface, gui.C_DARKER, velrect, False)
             # Render note names
             if step[1]:
                 notenames = [midi.note_to_string(note.data1) for note in step[1] if note.off]
@@ -437,11 +438,11 @@ class SeqGrid(screen.Screen):
                     # TODO: Why can I not store background in variable?
                     if len(step[1]) > 1 and i in self.selected:
                         if self.chordnote < 0 or self.chordnote == j:
-                            text = self.font.render(notename, False, settings.C_LIGHTEST, (0, 0, 201))
+                            text = self.font.render(notename, False, gui.C_LIGHTEST, (0, 0, 201))
                         else:
-                            text = self.font.render(notename, False, settings.C_LIGHTEST)
+                            text = self.font.render(notename, False, gui.C_LIGHTEST)
                     else:
-                        text = self.font.render(notename, False, settings.C_LIGHTEST)
+                        text = self.font.render(notename, False, gui.C_LIGHTEST)
                     surface.blit(text, (rect.x + 2, rect.y + 2 + j * 8))
         # "Presets" for note option buttons
         self.preset_radios.render(surface)

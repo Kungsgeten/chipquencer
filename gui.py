@@ -1,7 +1,26 @@
-import settings
-
 import pygame
+import yaml
 
+SCREEN_SIZE = SCREEN_WIDTH, SCREEN_HEIGHT = 480, 272
+
+# Color theme
+C_PRIMARY = None
+C_LIGHTER = None
+C_LIGHTEST = None
+C_DARKER = None
+C_DARKEST = None
+
+def load_colors():
+    global C_PRIMARY, C_LIGHTER, C_LIGHTEST, C_DARKER, C_DARKEST
+    stream = file('themes.yml', 'r')
+    theme = yaml.load(stream)['active_theme']
+    C_PRIMARY = pygame.Color(format(theme['primary'], '#08x'))
+    C_LIGHTER = pygame.Color(format(theme['lighter'], '#08x'))
+    C_LIGHTEST = pygame.Color(format(theme['lightest'], '#08x'))
+    C_DARKER = pygame.Color(format(theme['darker'], '#08x'))
+    C_DARKEST = pygame.Color(format(theme['darkest'], '#08x'))
+
+load_colors()
 pygame.font.init()
 FONT_BIG = pygame.font.SysFont("Arial", 16)
 
@@ -23,8 +42,8 @@ class ActionButton:
         return False
 
     def render(self, surface):
-        pygame.draw.rect(surface, settings.C_PRIMARY, self.rect)
-        text = self.font.render(self.text, False, settings.C_LIGHTEST)
+        pygame.draw.rect(surface, C_PRIMARY, self.rect)
+        text = self.font.render(self.text, False, C_LIGHTEST)
         surface.blit(text, (self.rect.x, self.rect.y))
 
 class Counter:
@@ -40,7 +59,7 @@ class Counter:
         self.minimum = minimum
         self.maximum = maximum
         self.height = height
-        self.text = self.font.render(text, False, settings.C_LIGHTEST)
+        self.text = self.font.render(text, False, C_LIGHTEST)
         self.dec = ActionButton((self.text.get_width() + pos[0], pos[1]),
                                 (height, height), '-')
         self.inc = ActionButton((self.text.get_width() + pos[0] + height * 2, pos[1]),
@@ -62,7 +81,7 @@ class Counter:
     def render(self, surface):
         self.dec.render(surface)
         self.inc.render(surface)
-        text = self.font.render((str(self.value)), False, settings.C_LIGHTEST)
+        text = self.font.render((str(self.value)), False, C_LIGHTEST)
         surface.blit(text, (self.text.get_width() +
                             self.pos[0] + self.height, self.pos[1]))
         surface.blit(self.text, self.pos)
@@ -101,11 +120,11 @@ class RadioButtons:
 
     def render(self, surface):
         for i, rect in enumerate(self.rects):
-            font_color = settings.C_LIGHTEST
-            button_color = settings.C_PRIMARY
+            font_color = C_LIGHTEST
+            button_color = C_PRIMARY
             if i == self.selected:
-                font_color = settings.C_LIGHTEST
-                button_color = settings.C_DARKER
+                font_color = C_LIGHTEST
+                button_color = C_DARKER
             pygame.draw.rect(surface, button_color, rect)
             try:
                 text = self.font.render(self.strings[i], False, font_color)
@@ -143,12 +162,12 @@ class Slider:
         return None
 
     def render(self, surface):
-        pygame.draw.rect(surface, settings.C_PRIMARY, self.rect)
+        pygame.draw.rect(surface, C_PRIMARY, self.rect)
         status = pygame.Rect(self.rect.left,
                              self.rect.bottom - self._pixels,
                              self.rect.width,
                              self._pixels)
-        pygame.draw.rect(surface, settings.C_DARKER, status)
+        pygame.draw.rect(surface, C_DARKER, status)
 
     def get_data(self):
         """Return the percentage filled."""

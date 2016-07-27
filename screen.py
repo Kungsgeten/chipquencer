@@ -1,6 +1,6 @@
 import pygame
 
-import settings
+import gui
 
 stack = [] # a stack of the current screens
 seqs = [] # a list of each sequencer part
@@ -43,8 +43,8 @@ class Screen:
                 return None
         except:
             self.has_changed = True
-        surface = pygame.Surface(settings.SCREEN_SIZE)
-        surface.fill(settings.C_LIGHTER)
+        surface = pygame.Surface(gui.SCREEN_SIZE)
+        surface.fill(gui.C_LIGHTER)
         return self._render(surface)
 
     def _render(self, surface):
