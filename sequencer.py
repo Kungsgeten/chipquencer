@@ -13,7 +13,7 @@ bpm = 100.0
 clock_time = 0 # in ms since start
 running_time = 0 # 16th notes pased since start
 clock = pygame.time.Clock()
-running = True
+running = False
 midiclock = MC_SEND
 
 def start():
@@ -93,7 +93,7 @@ class Part(object):
 
     def update(self):
         """Update the part and trigger new events. Check if part has looped."""
-        global running_time
+        global running_time, running
         timestamp = running_time % self.length
         # Part has looped?
         if self.finished and math.floor(timestamp) == 0 and self._events:
@@ -101,7 +101,7 @@ class Part(object):
                 self.toggle = False
                 self.mute = not self.mute
             self.finished = False
-        if not self.finished and timestamp >= self.next_timestamp:
+        if running and not self.finished and timestamp >= self.next_timestamp:
             self._trigger_event()
 
     def stop(self):

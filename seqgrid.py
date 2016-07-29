@@ -8,49 +8,6 @@ from modeline import Modeline
 
 import math, pygame, copy
 
-# class Keyboard():
-#     pygame.font.init()
-#     font = pygame.font.SysFont('04b03', 10)
-#     KEY_WIDTH = 20
-#     KEY_HEIGHT = 40
-
-#     def __init__(self):
-#         self.scale = [0, 2, 4, 5, 7, 9, 11]
-#         self.octave = 5
-#         self._init_keys()
-
-#     def _init_keys(self):
-#         self.keys = []
-#         for i in range(gui.SCREEN_WIDTH // self.KEY_WIDTH):
-#             rect = pygame.Rect(i * self.KEY_WIDTH, 0, self.KEY_WIDTH, self.KEY_HEIGHT)
-#             tone = self.scale[i % len(self.scale)] + (i // len(self.scale)) * 12
-#             self.keys.append((rect, tone))
-
-#     def update(self, events, ypos=0):
-#         for e in events:
-#             if e.type == pygame.MOUSEBUTTONDOWN:
-#                 for key in self.keys:
-#                     rect, tone = key
-#                     # FIX: Ugly hack
-#                     x, y = e.pos
-#                     y -= ypos
-#                     pos = x, y
-#                     if rect.collidepoint(pos):
-#                         return tone + self.octave * 12
-#         return None
-
-#     def render(self):
-#         surface = pygame.Surface((len(self.keys) * self.KEY_WIDTH,
-#                                   self.KEY_HEIGHT))
-#         surface.fill(gui.C_PRIMARY)
-#         for key in self.keys:
-#             rect, tone = key
-#             root = tone % 12 == self.scale[0] % 12
-#             pygame.draw.rect(surface, gui.C_DARKER, rect, 1 - root)
-#             text = self.font.render(midi.note_to_string(tone)[:2], False, gui.C_LIGHTEST)
-#             surface.blit(text, (rect.x + 2, rect.y + self.KEY_HEIGHT - text.get_height()))
-#         return surface
-
 class SeqGrid(screen.Screen):
     pygame.font.init()
     font = pygame.font.SysFont('04b03', 10)
@@ -86,10 +43,9 @@ class SeqGrid(screen.Screen):
         OFFSET = 2
 
     class KeyboardMode:
-        PLAY = 0
-        STEP = 1
-        REAL_TIME = 2
-        HOLD_CLICK = 3 # Hold a key and click on the step
+        STEP = 0
+        REAL_TIME = 1
+        TAP = 2 # Hold a key and then tap the step
 
     def __init__(self, part):
         self.modeline = Modeline()
@@ -149,6 +105,7 @@ class SeqGrid(screen.Screen):
             self.steps[target][1].append(copy)
 
     def delete_step(self, step):
+        self.has_changed = True
         # FIX: This is hacky
         for i, event in enumerate(self.steps[step][1]):
             for j, pevent in enumerate(self.part._events):
@@ -172,9 +129,8 @@ class SeqGrid(screen.Screen):
         # self.part.start()
 
     def keyboard_play(self, note):
+        self.has_changed = True
         midi.out.write_short(self.part.channel + midi.NOTE_ON, note, 127)
-        # if self.keyboard_mode is self.KeyboardMode.PLAY:
-        #     midi.out.write_short(self.part.channel + midi.NOTE_ON, note, 127)
         if self.keyboard_mode is self.KeyboardMode.STEP:
             new_note = True
             for step in self.selected:
@@ -192,7 +148,10 @@ class SeqGrid(screen.Screen):
                 self._change_slider()
         elif self.keyboard_mode is self.KeyboardMode.REAL_TIME:
             # Quantize step
-            step = int(round(sequencer.running_time)) % self.part.length
+            if sequencer.running:
+                step = int(round(sequencer.running_time)) % self.part.length
+            else:
+                step = self.selected[0]
             n = midi.note(note,
                           self.last_vel,
                           step + self.last_offset,
@@ -231,23 +190,6 @@ class SeqGrid(screen.Screen):
         # Keyboard events
         self.keydown_events((e for e in events if e.type == pygame.KEYDOWN))
         self.keyup_events((e for e in events if e.type == pygame.KEYUP))
-
-        # Keyboard
-        # keytone = self.keyboard.update(events, self.steps[-1][0].bottom)
-        # if keytone:
-        #     self.has_changed = True
-        #     new_note = True
-        #     for step in self.selected:
-        #         for i, n in enumerate(self.steps[step][1]):
-        #             if self.chordnote < 0 or i == self.chordnote:
-        #                 n.set_note(keytone)
-        #                 new_note = False
-        #     if new_note:
-        #         n = midi.note(keytone, self.last_vel, step + self.last_offset, self.last_length)
-        #         self.part.append_notes([n])
-        #         self.steps[step][1].append(n[0])
-        #         self._change_slider()
-        #     return
 
         # Radio Buttons
         clicked = self.radios.update(events)
@@ -380,7 +322,7 @@ class SeqGrid(screen.Screen):
         self.selected.append(step)
         self.chordnote = -1
         self.step_clicked = step
-        if self.keyboard_mode is self.KeyboardMode.HOLD_CLICK:
+        if self.keyboard_mode is self.KeyboardMode.TAP:
             notes = []
             pressed_keys = pygame.key.get_pressed()
             for key in self.KEYBOARD_KEYS.keys():
@@ -401,10 +343,12 @@ class SeqGrid(screen.Screen):
         for i, step in enumerate(self.steps):
             rect, events = step
             rectcolor = gui.C_PRIMARY
-            if curstep == i:
+            if curstep == i and sequencer.running:
                 rectcolor = gui.C_DARKEST
             selected = i in self.selected
-            pygame.draw.rect(surface, rectcolor, rect, 1 - (selected or curstep == i)) # step square
+            filled = curstep == i if sequencer.running else selected
+
+            pygame.draw.rect(surface, rectcolor, rect, 1 - filled) # step square
             # Render length of selected step (based on length slider)
             if self.radios.selected == self.Radio.LENGTH and selected:
                 pixel_length = self.slider.get_data() * 16. * self.STEP_SIZE
