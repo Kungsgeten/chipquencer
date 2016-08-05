@@ -36,6 +36,7 @@ class ChoiceList(screen.Screen):
 
     def _update(self, events):
         self.modeline.update(events)
+        self.has_changed = True
         for e in events:
             if e.type == pygame.MOUSEBUTTONDOWN:
                 x, y = e.pos

@@ -1,8 +1,10 @@
 import pygame
+import yaml
 
 import sequencer
 import screen
 import gui
+import midi
 
 from modeline import Modeline
 from partedit import PartEdit
@@ -52,6 +54,15 @@ class PartView(screen.Screen):
                         else:
                             screen.stack.append(screen.seqs[i])
                         return
+
+    def focus(self, *args, **kwargs):
+        # Update midi out device, see midi.py
+        if 'out_device' in kwargs:
+            midi.set_out_device(kwargs['out_device'])
+            stream = file('config.yml', 'w')
+            data = {'midi_out':kwargs['out_device']}
+            yaml.dump(data, stream)
+            sequencer.start()
 
     def _render(self, surface):
         # Render part boxes

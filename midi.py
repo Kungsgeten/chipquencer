@@ -1,4 +1,8 @@
-import pygame.midi
+import pygame.midi as pm
+import yaml
+
+from choicelist import ChoiceList
+import screen
 
 NOTE_OFF = 0x80
 NOTE_ON = 0x90
@@ -66,18 +70,17 @@ class MidiEvent:
             string += '\n  note off:\n' + str(self.off)
         return string + '\n---------\n'
 
-
 def outDevices():
     """Returns a list of tuples: (device name, output device number)"""
-    return [(pygame.midi.get_device_info(device_id)[1], device_id)
-            for device_id in range(pygame.midi.get_count())
-            if pygame.midi.get_device_info(device_id)[3]==1]
+    return [(pm.get_device_info(device_id)[1], device_id)
+            for device_id in range(pm.get_count())
+            if pm.get_device_info(device_id)[3]==1]
 
 def inDevices():
     """Returns a list of tuples: (device name, input device number)"""
-    return [(pygame.midi.get_device_info(device_id)[1], device_id)
-            for device_id in range(pygame.midi.get_count())
-            if pygame.midi.get_device_info(device_id)[2]==1]
+    return [(pm.get_device_info(device_id)[1], device_id)
+            for device_id in range(pm.get_count())
+            if pm.get_device_info(device_id)[2]==1]
 
 def sweep_cc(control, start, end, time, offset=0):
     step = -1
@@ -101,16 +104,28 @@ def note_to_string(note):
         return note + 'X'
     return note + str(octave)
 
-def init():
+def set_out_device(name):
     global out
-    pygame.midi.init()
-    print outDevices()
-    out = pygame.midi.Output(1)
+    for od in outDevices():
+        if od[0] == name:
+            out = pm.Output(od[1])
+            return True
+    return False
+
+def init():
+    """Initializes MIDI and returns False if we haven't set up a MIDI Out Device."""
+    pm.init()
+    config_yaml = yaml.load(file('config.yml', 'r'))
+    if not set_out_device(config_yaml['midi_out']):
+        devices = [[od[0], od[0]] for od in outDevices()]
+        screen.stack.append(ChoiceList(devices, 'Out Device'))
+        return False
+    return True
     # for od in outDevices():
     #     if 'CME U2MIDI' == od[0]:
-    #         out = pygame.midi.Output(od[1])
+    #         out = pm.Output(od[1])
     #         return
 
 def close():
     out.close()
-    pygame.midi.quit()
+    pm.quit()

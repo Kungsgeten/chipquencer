@@ -18,6 +18,7 @@ midiclock = MC_SEND
 
 def start():
     """Start the sequencer."""
+    global running
     running = True
     for part in parts:
         part.start()
@@ -26,6 +27,7 @@ def start():
 
 def stop():
     """Stop the sequencer."""
+    global clock_time, running_time, running
     clock_time = 0
     running_time = 0
     running = False
@@ -47,7 +49,7 @@ def update():
         running_time = clock_time / ((60.0 / bpm) / 4.0)
     for part in parts:
         part.update()
-    if midiclock == MC_SEND:
+    if midiclock == MC_SEND and midi.out:
         # 24 ppq
         ppq_length = (60.0 / bpm) / 24.0
         update.deltasum += delta * 0.001

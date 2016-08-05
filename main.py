@@ -11,7 +11,6 @@ import sys, pygame, math
 
 # Setup
 
-midi.init()
 settings.load_instruments()
 
 melody = sequencer.Part()
@@ -31,10 +30,12 @@ drumgrid = seqdrum.SeqDrum(drums)
 
 display = pygame.display.set_mode(gui.SCREEN_SIZE)
 
-# sequencer.start()
 screen.seqs.append(melgrid)
 screen.seqs.append(drumgrid)
+
 screen.stack.append(partview.PartView())
+if midi.init():
+    sequencer.start()
 
 while 1:
     events = pygame.event.get()
