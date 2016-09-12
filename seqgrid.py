@@ -7,12 +7,17 @@ from gui import RadioButtons, Slider
 from modeline import Modeline
 
 import math, pygame, copy
+from enum import Enum
 
 class SeqGrid(screen.Screen):
     pygame.font.init()
-    font = pygame.font.SysFont('04b03', 10)
+    font = gui.FONT_BIG
     step_clicked = -1
-    STEP_SIZE = (gui.SCREEN_HEIGHT - Modeline.HEIGHT) // 4 # width/height of step rect
+    RADIO_DISTANCE = 2
+    RADIO_WIDTH = 41
+    RADIO_HEIGHT = 45
+    STEP_SIZE = (gui.SCREEN_HEIGHT - Modeline.HEIGHT) // 6 # width/height of step rect
+    MENU_WIDTH = RADIO_WIDTH * 3 + RADIO_DISTANCE * 5
     VEL_PRESETS = {0: midi.PP, 1: midi.P,
                    2: midi.MP, 3: midi.MF,
                    4: midi.F,  5: midi.FF}
@@ -42,50 +47,61 @@ class SeqGrid(screen.Screen):
         LENGTH = 1
         OFFSET = 2
 
-    class KeyboardMode:
-        STEP = 0
-        REAL_TIME = 1
-        TAP = 2 # Hold a key and then tap the step
+    KeyboardMode = Enum("Keyboard mode", "Tap Step RealTime")
 
-    def __init__(self, part):
+    def __init__(self, part, width=4, height=4):
         self.modeline = Modeline()
         self.modeline.buttonstrings = ['Shift', 'Options', 'Mode', 'Exit']
         self.modeline.text = 'Measure 1'
         self.part = part
+        self.grid = self.grid_width, self.grid_height = width, height
+        step_width, step_height = self.step_pixels()
         # each step has a rectangle and a list of events
         self.steps = []
         for i in range(part.length):
-            row = i // 4
-            col = i % 4
-            pos = (col * self.STEP_SIZE, row * self.STEP_SIZE)
-            self.steps.append([pygame.Rect(pos, (self.STEP_SIZE,
-                                                 self.STEP_SIZE)), list()])
+            row = i // self.grid_width
+            col = i % self.grid_width
+            print col, row
+            pos = (col * step_width, row * step_height)
+            self.steps.append([pygame.Rect(pos, (step_width,
+                                                 step_height)), list()])
         self.notes_to_steps()
         # selected step numbers
         self.selected = [0]
         # which note of a chord we're editing. negative = all
         self.chordnote = -1
         self.last_step = -1
-        SLIDER_WIDTH = 30
-        self.slider = Slider(pygame.Rect(gui.SCREEN_WIDTH - SLIDER_WIDTH - 8,
-                                         gui.SCREEN_HEIGHT - 143,
+        SLIDER_WIDTH = self.RADIO_WIDTH
+        SLIDER_HEIGHT = gui.SCREEN_HEIGHT - self.RADIO_HEIGHT - self.RADIO_DISTANCE * 3 - Modeline.HEIGHT
+        self.slider = Slider(pygame.Rect(gui.SCREEN_WIDTH - SLIDER_WIDTH - self.RADIO_DISTANCE,
+                                         self.RADIO_HEIGHT + self.RADIO_DISTANCE * 2,
                                          SLIDER_WIDTH,
-                                         127))
+                                         SLIDER_HEIGHT))
         strings = 'Vel', 'Len', 'Off'
-        distance = 2
-        self.radios = RadioButtons((self.STEP_SIZE*4 + distance, distance),
-                                   (41, 45), 3, 1, strings, distance)
-        self.preset_radios = RadioButtons((self.STEP_SIZE*4 + distance,
-                                           distance * 4 + 41),
-                                          (41, 41), 2, 3, [], distance)
+        distance = self.RADIO_DISTANCE
+        self.radios = RadioButtons((step_width * self.grid_width + distance, distance),
+                                   (self.RADIO_WIDTH, self.RADIO_HEIGHT), 3, 1, strings, distance)
+        self.preset_radios = RadioButtons((step_width * self.grid_width + distance,
+                                           distance * 4 + self.RADIO_WIDTH),
+                                          (self.RADIO_WIDTH, self.RADIO_WIDTH), 2, 3, [], distance)
         self.last_vel = 120
         self.last_length = 1.0
         self.last_offset = 0.0
         self._change_slider()
 
         self.keyboard_root = 60
-        self.keyboard_mode = self.KeyboardMode.REAL_TIME
+        self.keyboard_mode = self.KeyboardMode.Tap
 
+    def step_pixels(self):
+        return (int((gui.SCREEN_WIDTH / self.grid_width) - self.MENU_WIDTH / self.grid_width),
+                int((gui.SCREEN_HEIGHT / self.grid_height) - Modeline.HEIGHT / self.grid_height))
+        
+    def keyboard_mode_cycle(self):
+        "Cycle between keyboard modes."
+        kbm_value = (self.keyboard_mode.value + 1) % len(self.KeyboardMode) + 1
+        self.keyboard_mode = self.KeyboardMode(kbm_value)
+        self.modeline.text = self.keyboard_mode.name
+        
     def copy_step(self, original, target):
         distance = target - original
         self.delete_step(target)
@@ -130,8 +146,9 @@ class SeqGrid(screen.Screen):
 
     def keyboard_play(self, note):
         self.has_changed = True
-        midi.out.write_short(self.part.channel + midi.NOTE_ON, note, 127)
-        if self.keyboard_mode is self.KeyboardMode.STEP:
+        if not sequencer.running or not self.keyboard_mode is self.KeyboardMode.Step:
+            midi.out.write_short(self.part.channel + midi.NOTE_ON, note, 127)
+        if self.keyboard_mode is self.KeyboardMode.Step:
             new_note = True
             for step in self.selected:
                 for i, n in enumerate(self.steps[step][1]):
@@ -146,7 +163,7 @@ class SeqGrid(screen.Screen):
                 self.part.append_notes([n])
                 self.steps[step][1].append(n[0])
                 self._change_slider()
-        elif self.keyboard_mode is self.KeyboardMode.REAL_TIME:
+        elif self.keyboard_mode is self.KeyboardMode.RealTime:
             # Quantize step
             if sequencer.running:
                 step = int(round(sequencer.running_time)) % self.part.length
@@ -173,6 +190,8 @@ class SeqGrid(screen.Screen):
                 self.keyboard_root -= 1
             elif e.key == pygame.K_l:
                 self.keyboard_root += 1
+            elif e.key == pygame.K_SLASH:
+                self.keyboard_mode_cycle()
 
     def keyup_events(self, keyevents):
         for e in keyevents:
@@ -267,8 +286,10 @@ class SeqGrid(screen.Screen):
             #     # elif e.key == pygame.K_DELETE:
             #     #     for step in self.selected:
             #     #         self.delete_step(step)
+            step_width, step_height = self.step_pixels()
             if e.type == pygame.MOUSEBUTTONDOWN:
-                if pygame.Rect(0, 0, self.STEP_SIZE * 4, self.STEP_SIZE * 4).collidepoint(e.pos):
+                if pygame.Rect(0, 0, step_width * self.grid_width,
+                               step_height * self.grid_height).collidepoint(e.pos):
                     self.preset_radios.selected = -1
                     self.selected = []
                     for i, step in enumerate(self.steps):
@@ -281,7 +302,7 @@ class SeqGrid(screen.Screen):
                     step_clicked = self.step_clicked
                     self.step_clicked = -1
                     # drag to delete
-                    if e.pos[0] > self.STEP_SIZE * 4 or e.pos[1] > self.STEP_SIZE * 4:
+                    if e.pos[0] > step_width * self.grid_width or e.pos[1] > step_height * self.grid_height:
                         self.delete_step(step_clicked)
                         continue
                     # drag to copy
@@ -322,7 +343,7 @@ class SeqGrid(screen.Screen):
         self.selected.append(step)
         self.chordnote = -1
         self.step_clicked = step
-        if self.keyboard_mode is self.KeyboardMode.TAP:
+        if self.keyboard_mode is self.KeyboardMode.Tap:
             notes = []
             pressed_keys = pygame.key.get_pressed()
             for key in self.KEYBOARD_KEYS.keys():
@@ -339,6 +360,7 @@ class SeqGrid(screen.Screen):
 
     def _render(self, surface):
         curstep = math.floor(sequencer.running_time % self.part.length)
+        step_width, step_height = self.step_pixels()
         self.slider.render(surface)
         for i, step in enumerate(self.steps):
             rect, events = step
@@ -351,29 +373,29 @@ class SeqGrid(screen.Screen):
             pygame.draw.rect(surface, rectcolor, rect, 1 - filled) # step square
             # Render length of selected step (based on length slider)
             if self.radios.selected == self.Radio.LENGTH and selected:
-                pixel_length = self.slider.get_data() * 16. * self.STEP_SIZE
+                pixel_length = self.slider.get_data() * 16. * step_width
                 x = rect.x
-                y = rect.y + self.STEP_SIZE * 0.25
-                while x + pixel_length > self.STEP_SIZE * 4:
-                    pixel_length -= (self.STEP_SIZE * 4) - x
-                    width = (self.STEP_SIZE * 4) - x
-                    lenrect = pygame.Rect(x, y, width, self.STEP_SIZE / 2)
+                y = rect.y + step_height * 0.25
+                while x + pixel_length > step_width * self.grid_width:
+                    pixel_length -= (step_width * self.grid_width) - x
+                    width = (step_width * self.grid_width) - x
+                    lenrect = pygame.Rect(x, y, width, step_height / 2)
                     pygame.draw.rect(surface, gui.C_DARKER, lenrect, False)
                     x = 0
-                    y = (y + self.STEP_SIZE) % (self.STEP_SIZE * 4)
+                    y = (y + step_height) % (step_height * self.grid_height)
                 if pixel_length:
                     lenrect = pygame.Rect(x, y, pixel_length, self.STEP_SIZE / 2)
                     pygame.draw.rect(surface, gui.C_DARKER, lenrect, False)
             # Render offset position
             elif self.radios.selected == self.Radio.OFFSET and selected:
-                x = rect.x + self.slider.get_data() * self.STEP_SIZE
+                x = rect.x + self.slider.get_data() * step_width
                 y = rect.y
-                pygame.draw.line(surface, gui.C_DARKER, (x, y), (x, y + self.STEP_SIZE))
+                pygame.draw.line(surface, gui.C_DARKER, (x, y), (x, y + step_height))
             # Render velocity level
             elif self.radios.selected == self.Radio.VELOCITY and selected:
-                x = rect.x + self.STEP_SIZE * 0.25
-                y = rect.y + self.STEP_SIZE - self.STEP_SIZE * self.slider.get_data()
-                velrect = pygame.Rect(x, y, self.STEP_SIZE / 2, self.STEP_SIZE * self.slider.get_data())
+                x = rect.x + step_width * 0.25
+                y = rect.y + step_height - step_height * self.slider.get_data()
+                velrect = pygame.Rect(x, y, step_width / 2, step_height * self.slider.get_data())
                 pygame.draw.rect(surface, gui.C_DARKER, velrect, False)
             # Render note names
             if step[1]:

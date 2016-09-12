@@ -14,7 +14,8 @@ import sys, pygame, math
 settings.load_instruments()
 
 melody = sequencer.Part()
-melody.length = 16
+w, h = 4, 7
+melody.length = w * h
 sequencer.parts.append(melody)
 
 drums = sequencer.Part()
@@ -23,7 +24,7 @@ drums.channel = 9
 
 sequencer.parts.append(drums)
 
-melgrid = seqgrid.SeqGrid(melody)
+melgrid = seqgrid.SeqGrid(melody, w, h)
 drumgrid = seqdrum.SeqDrum(drums)
 
 # Pygame stuff
