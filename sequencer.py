@@ -67,15 +67,18 @@ update.next_ppq = 0
 # Timestamps is measured in 16ths
 class Part(object):
     def __init__(self):
-        self._events = [] # sorted after the event timestamps
-        self.length = 16 # in 16th notes
+        self._events = []  # sorted after the event timestamps
+        self.length = 16  # in 16th notes
         self._mute = False
         self.next_timestamp = 0
-        self.element = 0 # the last element checked
-        self.finished = False # the last event has triggered?
+        self.element = 0  # the last element checked
+        self.finished = False  # the last event has triggered?
         self.channel = 0
         self.toggle = False
         self.name = 'Test'
+
+    def __str__(self):
+        return self.name + str([str(e) for e in self._events])
 
     @property
     def mute(self):

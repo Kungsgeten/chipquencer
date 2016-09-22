@@ -14,8 +14,8 @@ import sys, pygame, math
 settings.load_instruments()
 
 melody = sequencer.Part()
-w, h = 4, 7
-melody.length = w * h
+w, h = 2, 8
+melody.length = w * h * 2
 sequencer.parts.append(melody)
 
 drums = sequencer.Part()

@@ -22,7 +22,9 @@ def load_colors():
 
 load_colors()
 pygame.font.init()
-FONT_BIG = pygame.font.SysFont("Arial", 16)
+FONT_BIG = pygame.font.Font("fonts/ProggyClean.ttf", 16)
+FONT_MEDIUM = pygame.font.Font("fonts/ProggySmall.ttf", 16)
+FONT_SMALL = pygame.font.Font("fonts/ProggyTiny.ttf", 16)
 
 class ActionButton:
     """A regular rectangular button."""

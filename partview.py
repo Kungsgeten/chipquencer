@@ -11,7 +11,7 @@ from partedit import PartEdit
 
 class PartView(screen.Screen):
     pygame.font.init()
-    font = pygame.font.SysFont('04b03', 16)
+    font = gui.FONT_MEDIUM
     PART_BOX_SIZE = 55
     SPACING = 3
 
@@ -73,7 +73,7 @@ class PartView(screen.Screen):
             else:
                 rectcolor = gui.C_DARKER
             pygame.draw.rect(surface, rectcolor, rect, True)
-            pos = rect.topleft
+            pos = rect.move(2, 2).topleft
             text = self.font.render(part.name, False, rectcolor)
             surface.blit(text, pos)
             # Playtime

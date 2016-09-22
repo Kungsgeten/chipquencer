@@ -11,7 +11,7 @@ class ButtonKeyboard:
 class Modeline():
     HEIGHT = 10
     pygame.font.init()
-    font = pygame.font.SysFont('04b03', 8)
+    font = gui.FONT_SMALL
 
     def __init__(self):
         self.buttonstrings = ['', '', '', '']

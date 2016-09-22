@@ -11,12 +11,11 @@ from enum import Enum
 
 class SeqGrid(screen.Screen):
     pygame.font.init()
-    font = gui.FONT_BIG
+    font = gui.FONT_MEDIUM
     step_clicked = -1
     RADIO_DISTANCE = 2
     RADIO_WIDTH = 41
     RADIO_HEIGHT = 45
-    STEP_SIZE = (gui.SCREEN_HEIGHT - Modeline.HEIGHT) // 6 # width/height of step rect
     MENU_WIDTH = RADIO_WIDTH * 3 + RADIO_DISTANCE * 5
     VEL_PRESETS = {0: midi.PP, 1: midi.P,
                    2: midi.MP, 3: midi.MF,
@@ -50,6 +49,8 @@ class SeqGrid(screen.Screen):
     KeyboardMode = Enum("Keyboard mode", "Tap Step RealTime")
 
     def __init__(self, part, width=4, height=4):
+        assert(part.length % (width * height) == 0)
+        self._measure = 0
         self.modeline = Modeline()
         self.modeline.buttonstrings = ['Shift', 'Options', 'Mode', 'Exit']
         self.modeline.text = 'Measure 1'
@@ -59,9 +60,8 @@ class SeqGrid(screen.Screen):
         # each step has a rectangle and a list of events
         self.steps = []
         for i in range(part.length):
-            row = i // self.grid_width
+            row = (i // self.grid_width) % self.grid_height
             col = i % self.grid_width
-            print col, row
             pos = (col * step_width, row * step_height)
             self.steps.append([pygame.Rect(pos, (step_width,
                                                  step_height)), list()])
@@ -92,6 +92,19 @@ class SeqGrid(screen.Screen):
         self.keyboard_root = 60
         self.keyboard_mode = self.KeyboardMode.Tap
 
+    @property
+    def measures(self):
+        return self.part.length // (self.grid_width * self.grid_height)
+
+    @property
+    def measure(self):
+        return self._measure
+    
+    @measure.setter
+    def measure(self, measure):
+        self._measure = measure % self.measures
+        print self.measure
+        
     def step_pixels(self):
         return (int((gui.SCREEN_WIDTH / self.grid_width) - self.MENU_WIDTH / self.grid_width),
                 int((gui.SCREEN_HEIGHT / self.grid_height) - Modeline.HEIGHT / self.grid_height))
@@ -146,7 +159,7 @@ class SeqGrid(screen.Screen):
 
     def keyboard_play(self, note):
         self.has_changed = True
-        if not sequencer.running or not self.keyboard_mode is self.KeyboardMode.Step:
+        if not sequencer.running or self.keyboard_mode is not self.KeyboardMode.Step:
             midi.out.write_short(self.part.channel + midi.NOTE_ON, note, 127)
         if self.keyboard_mode is self.KeyboardMode.Step:
             new_note = True
@@ -192,6 +205,9 @@ class SeqGrid(screen.Screen):
                 self.keyboard_root += 1
             elif e.key == pygame.K_SLASH:
                 self.keyboard_mode_cycle()
+            elif e.key == pygame.K_PLUS:
+                self.measure += 1
+                self.modeline.text = 'Measure {}'.format(self.measure + 1)
 
     def keyup_events(self, keyevents):
         for e in keyevents:
@@ -292,24 +308,27 @@ class SeqGrid(screen.Screen):
                                step_height * self.grid_height).collidepoint(e.pos):
                     self.preset_radios.selected = -1
                     self.selected = []
-                    for i, step in enumerate(self.steps):
+                    measuresteps = self.grid_width * self.grid_height
+                    for i, step in enumerate(self.steps[:measuresteps]):
                         rect = step[0]
                         if rect.collidepoint(e.pos):
-                            self._on_step_click(i)
+                            self._on_step_click(i + measuresteps * self.measure)
                             break
             elif e.type == pygame.MOUSEBUTTONUP:
                 if self.step_clicked >= 0:
                     step_clicked = self.step_clicked
                     self.step_clicked = -1
                     # drag to delete
-                    if e.pos[0] > step_width * self.grid_width or e.pos[1] > step_height * self.grid_height:
+                    if(e.pos[0] > step_width * self.grid_width or
+                       e.pos[1] > step_height * self.grid_height):
                         self.delete_step(step_clicked)
                         continue
                     # drag to copy
-                    for i, step in enumerate(self.steps):
+                    measuresteps = self.grid_width * self.grid_height
+                    for i, step in enumerate(self.steps[:measuresteps]):
                         rect = step[0]
                         if rect.collidepoint(e.pos):
-                            if not step_clicked == i:
+                            if step_clicked != i + measuresteps * self.measure:
                                 # dragged step
                                 self.copy_step(step_clicked, i)
                                 self.has_changed = True
@@ -362,7 +381,10 @@ class SeqGrid(screen.Screen):
         curstep = math.floor(sequencer.running_time % self.part.length)
         step_width, step_height = self.step_pixels()
         self.slider.render(surface)
-        for i, step in enumerate(self.steps):
+        measuresteps = self.grid_width * self.grid_height
+        for i, step in enumerate(self.steps[measuresteps * self.measure:
+                                            measuresteps * (self.measure + 1)]):
+            i += measuresteps * self.measure
             rect, events = step
             rectcolor = gui.C_PRIMARY
             if curstep == i and sequencer.running:
@@ -370,7 +392,8 @@ class SeqGrid(screen.Screen):
             selected = i in self.selected
             filled = curstep == i if sequencer.running else selected
 
-            pygame.draw.rect(surface, rectcolor, rect, 1 - filled) # step square
+            # step square
+            pygame.draw.rect(surface, rectcolor, rect, 1 - filled)
             # Render length of selected step (based on length slider)
             if self.radios.selected == self.Radio.LENGTH and selected:
                 pixel_length = self.slider.get_data() * 16. * step_width
@@ -384,7 +407,7 @@ class SeqGrid(screen.Screen):
                     x = 0
                     y = (y + step_height) % (step_height * self.grid_height)
                 if pixel_length:
-                    lenrect = pygame.Rect(x, y, pixel_length, self.STEP_SIZE / 2)
+                    lenrect = pygame.Rect(x, y, pixel_length, step_height / 2)
                     pygame.draw.rect(surface, gui.C_DARKER, lenrect, False)
             # Render offset position
             elif self.radios.selected == self.Radio.OFFSET and selected:

@@ -10,7 +10,7 @@ def pop(*args, **kwargs):
     stack[-1].focus(*args, **kwargs)
     stack[-1].has_changed = True
 
-class Screen:
+class Screen(object):
     """Screen is meant to be used as an abstract base class for other "screens". A
     screen is the entire screen with all its interface, visible to the user.
 

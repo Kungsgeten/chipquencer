@@ -39,8 +39,8 @@ class MidiEvent:
         self.data1 = data1
         self.data2 = data2
         self.timestamp = timestamp
-        self.off = None # note_on events has an off event too
-
+        self.off = None  # note_on events has an off event too
+        
     def transpose(self, value, channel=0):
         """Transposes an event, sends note off for old note"""
         # TODO: Need to note off here, old note keeps playing
@@ -62,14 +62,10 @@ class MidiEvent:
             self.off.timestamp += length
 
     def __str__(self):
-        string = 'timestamp: %f, status: %i, data1: %i, data2: %i' % (self.timestamp,
-                                                                      self.status,
-                                                                      self.data1,
-                                                                      self.data2)
-        if self.off:
-            string += '\n  note off:\n' + str(self.off)
-        return string + '\n---------\n'
-
+        return 'ts: %f, status: %i, data1: %i, data2: %i' % (self.timestamp,
+                                                             self.status,
+                                                             self.data1,
+                                                             self.data2)
 def outDevices():
     """Returns a list of tuples: (device name, output device number)"""
     return [(pm.get_device_info(device_id)[1], device_id)
