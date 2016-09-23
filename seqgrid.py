@@ -6,8 +6,9 @@ import gui
 from gui import RadioButtons, Slider
 from modeline import Modeline
 
-import math, pygame, copy
+import math, pygame
 from enum import Enum
+
 
 class SeqGrid(screen.Screen):
     pygame.font.init()
@@ -50,12 +51,11 @@ class SeqGrid(screen.Screen):
 
     def __init__(self, part, width=4, height=4):
         assert(part.length % (width * height) == 0)
-        self._measure = 0
-        self.modeline = Modeline()
-        self.modeline.buttonstrings = ['Shift', 'Options', 'Mode', 'Exit']
-        self.modeline.text = 'Measure 1'
         self.part = part
         self.grid = self.grid_width, self.grid_height = width, height
+        self.modeline = Modeline()
+        self.modeline.strings = ['', '', '']
+        self.measure = 0
         step_width, step_height = self.step_pixels()
         # each step has a rectangle and a list of events
         self.steps = []
@@ -88,10 +88,21 @@ class SeqGrid(screen.Screen):
         self.last_length = 1.0
         self.last_offset = 0.0
         self._change_slider()
-
+        
+        self._keyboard_root = 0
         self.keyboard_root = 60
         self.keyboard_mode = self.KeyboardMode.Tap
+        self.modeline.strings[2] = self.keyboard_mode.name
 
+    @property
+    def keyboard_root(self):
+        return self._keyboard_root
+
+    @keyboard_root.setter
+    def keyboard_root(self, note):
+        self._keyboard_root = note % 127
+        self.modeline.strings[1] = midi.note_to_string(self._keyboard_root)
+        
     @property
     def measures(self):
         return self.part.length // (self.grid_width * self.grid_height)
@@ -103,17 +114,20 @@ class SeqGrid(screen.Screen):
     @measure.setter
     def measure(self, measure):
         self._measure = measure % self.measures
-        print self.measure
-        
+        self.modeline.strings[0] = "M:{}/{}".format(self.measure + 1,
+                                                    self.measures)
+
     def step_pixels(self):
-        return (int((gui.SCREEN_WIDTH / self.grid_width) - self.MENU_WIDTH / self.grid_width),
-                int((gui.SCREEN_HEIGHT / self.grid_height) - Modeline.HEIGHT / self.grid_height))
+        return (int((gui.SCREEN_WIDTH / self.grid_width) -
+                    self.MENU_WIDTH / self.grid_width),
+                int((gui.SCREEN_HEIGHT / self.grid_height) -
+                    Modeline.HEIGHT / self.grid_height))
         
     def keyboard_mode_cycle(self):
         "Cycle between keyboard modes."
         kbm_value = (self.keyboard_mode.value + 1) % len(self.KeyboardMode) + 1
         self.keyboard_mode = self.KeyboardMode(kbm_value)
-        self.modeline.text = self.keyboard_mode.name
+        self.modeline.strings[2] = self.keyboard_mode.name
         
     def copy_step(self, original, target):
         distance = target - original
@@ -203,12 +217,11 @@ class SeqGrid(screen.Screen):
                 self.keyboard_root -= 1
             elif e.key == pygame.K_l:
                 self.keyboard_root += 1
-            elif e.key == pygame.K_SLASH:
+            elif e.key == pygame.K_SLASH or e.key == pygame.K_t:
                 self.keyboard_mode_cycle()
-            elif e.key == pygame.K_PLUS:
+            elif e.key == pygame.K_p:
                 self.measure += 1
-                self.modeline.text = 'Measure {}'.format(self.measure + 1)
-
+    
     def keyup_events(self, keyevents):
         for e in keyevents:
             if e.key in self.KEYBOARD_KEYS:
@@ -216,7 +229,6 @@ class SeqGrid(screen.Screen):
                 midi.out.write_short(self.part.channel + midi.NOTE_ON, note, 0)
 
     def _update(self, events):
-        # self.modeline.update(events)
         # New step?
         if self.last_step != math.floor(sequencer.running_time):
             self.has_changed = True

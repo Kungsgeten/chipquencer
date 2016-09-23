@@ -19,8 +19,7 @@ class PartView(screen.Screen):
         self.partrects = []
         self.update_partrects()
         self.modeline = Modeline()
-        self.modeline.buttonstrings = ['Toggle', 'Mute', 'Solo', 'Other']
-        self.modeline.text = 'Rock it out man!'
+        self.modeline.strings = ['Toggle', 'Mute', 'Solo', 'Other']
 
     def update_partrects(self):
         self.partrects = []
@@ -37,7 +36,6 @@ class PartView(screen.Screen):
 
     def _update(self, events):
         self.has_changed = True
-        self.modeline.update(events)
         for e in events:
             if e.type == pygame.MOUSEBUTTONDOWN:
                 x, y = e.pos
@@ -46,11 +44,11 @@ class PartView(screen.Screen):
                         if i == len(self.partrects) - 1:
                             screen.stack.append(PartEdit(sequencer.Part(), None))
                         # Toggle
-                        elif self.modeline.buttons[0].down:
-                            sequencer.parts[i].toggle = True
-                        # Mute button
-                        elif self.modeline.buttons[1].down:
-                            sequencer.parts[i].mute = not sequencer.parts[i].mute
+                        # elif self.modeline.buttons[0].down:
+                        #     sequencer.parts[i].toggle = True
+                        # # Mute button
+                        # elif self.modeline.buttons[1].down:
+                        #     sequencer.parts[i].mute = not sequencer.parts[i].mute
                         else:
                             screen.stack.append(screen.seqs[i])
                         return

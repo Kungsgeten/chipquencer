@@ -13,10 +13,7 @@ class ChoiceList(screen.Screen):
     def __init__(self, choices, modelinetext=''):
         self.scrolling = False
         self.choices = choices
-        self.returnkey = modelinetext.lower().replace(' ', '_')
         self.modeline = Modeline()
-        self.modeline.buttonstrings = ['', '', '', 'Cancel']
-        self.modeline.text = modelinetext
         self.rects = []
         self.listsurface = pygame.Surface((gui.SCREEN_WIDTH - self.SCROLL_WIDTH,
                                        self.ITEM_HEIGHT * len(choices)))
@@ -35,7 +32,6 @@ class ChoiceList(screen.Screen):
             self.listsurface.blit(text, (0, i * self.ITEM_HEIGHT))
 
     def _update(self, events):
-        self.modeline.update(events)
         self.has_changed = True
         for e in events:
             if e.type == pygame.MOUSEBUTTONDOWN:

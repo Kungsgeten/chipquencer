@@ -17,15 +17,12 @@ class SeqDrum(screen.Screen):
         self.grid = [[False] * self.part.length for n in self.notes]
 
         self.modeline = Modeline()
-        self.modeline.buttonstrings = ['', '', '', 'Exit']
-        self.modeline.text = 'Drum drum...'
         self.last_curstep = -1
 
     def _update(self, events):
         curstep = math.floor(sequencer.running_time % self.part.length)
         if curstep != self.last_curstep:
             self.has_changed = True
-        # self.modeline.update(events)
         for e in events:
             if e.type == pygame.MOUSEBUTTONDOWN:
                 x, y = e.pos

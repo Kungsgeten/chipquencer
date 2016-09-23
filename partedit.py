@@ -20,8 +20,7 @@ class TextInput(screen.Screen):
     def __init__(self, modelinetext='', default=''):
         self.returnkey = modelinetext.lower().replace(' ', '_')
         self.modeline = Modeline()
-        self.modeline.buttonstrings = ['<-', '->', 'Delete', 'OK']
-        self.modeline.text = 'Insert part name'
+        self.modeline.strings = ['<-', '->', 'Delete', 'OK']
         self.text = default
         self.pos = len(default)
         keyrows = ('1234567890',
@@ -39,28 +38,7 @@ class TextInput(screen.Screen):
         self.text = self.text[:self.pos] + char + self.text[self.pos:]
         self.pos += 1
 
-    def _update_modeline(self, events):
-        self.modeline.update(events)
-        # Left
-        if self.modeline.buttons[0].pressed:
-            if self.pos > 0:
-                self.pos -= 1
-        # Right
-        elif self.modeline.buttons[1].pressed:
-            if self.pos < len(self.text):
-                self.pos += 1
-        # Delete
-        elif self.modeline.buttons[2].pressed:
-            if self.pos > 0:
-                self.text = self.text[:self.pos-1] + self.text[self.pos:]
-                self.pos -= 1
-        # OK
-        elif self.modeline.buttons[3].pressed:
-            screen.pop(**{self.returnkey: self.text})
-
-
     def _update(self, events):
-        self._update_modeline(events)
         for e in events:
             if e.type == pygame.MOUSEBUTTONDOWN:
                 for k in self.keyboard:
@@ -97,8 +75,7 @@ class PartEdit(screen.Screen):
         self.part = part
         self.sequencer = sequencer
         self.modeline = Modeline()
-        self.modeline.buttonstrings = ['Grid', 'Drum', '', 'Cancel']
-        self.modeline.text = 'Part edit'
+        self.modeline.strings = ['Grid', 'Drum', '', 'Cancel']
 
         self.instrument_name = ''
 
@@ -125,24 +102,24 @@ class PartEdit(screen.Screen):
             self.part.name = self.instrument_name
             # TODO: Load instrument data
 
-    def _update_modeline(self, events):
-        self.modeline.update(events)
-        if self.modeline.buttons[0].pressed:
-            self.part.channel = 2
-            sequencer.parts.append(self.part)
-            self.part.start()
-            screen.seqs.append(seqgrid.SeqGrid(self.part))
-            screen.pop()
-            screen.stack[0].update_partrects()
-        elif self.modeline.buttons[1].pressed:
-            self.part.channel = 2
-            sequencer.parts.append(self.part)
-            self.part.start()
-            screen.seqs.append(seqdrum.SeqDrum(self.part))
-            screen.pop()
-            screen.stack[0].update_partrects()
-        elif self.modeline.buttons[3].pressed:
-            screen.pop()
+    # def _update_modeline(self, events):
+    #     self.modeline.update(events)
+    #     if self.modeline.buttons[0].pressed:
+    #         self.part.channel = 2
+    #         sequencer.parts.append(self.part)
+    #         self.part.start()
+    #         screen.seqs.append(seqgrid.SeqGrid(self.part))
+    #         screen.pop()
+    #         screen.stack[0].update_partrects()
+    #     elif self.modeline.buttons[1].pressed:
+    #         self.part.channel = 2
+    #         sequencer.parts.append(self.part)
+    #         self.part.start()
+    #         screen.seqs.append(seqdrum.SeqDrum(self.part))
+    #         screen.pop()
+    #         screen.stack[0].update_partrects()
+    #     elif self.modeline.buttons[3].pressed:
+    #         screen.pop()
 
     def _update_buttons(self, events):
         if self.instrument_button.clicked(events):
