@@ -6,6 +6,7 @@ import settings
 import gui
 import screen
 import partview
+import event
 
 import sys, pygame, math
 
@@ -16,7 +17,7 @@ settings.load_instruments()
 melody = sequencer.Part()
 w, h = 4, 4
 melody.length = w * h * 2
-sequencer.parts.append(melody)
+# sequencer.parts.append(melody)
 
 drums = sequencer.Part()
 drums.length = 16
@@ -31,7 +32,7 @@ drumgrid = seqdrum.SeqDrum(drums)
 
 display = pygame.display.set_mode(gui.SCREEN_SIZE)
 
-screen.seqs.append(melgrid)
+# screen.seqs.append(melgrid)
 screen.seqs.append(drumgrid)
 
 screen.stack.append(partview.PartView())
@@ -41,13 +42,13 @@ if midi.init():
 while 1:
     events = pygame.event.get()
     screen.stack[-1].update(events)
-    for event in events:
-        if event.type == pygame.QUIT:
+    for e in events:
+        if e.type == pygame.QUIT:
             sequencer.stop()
             midi.close()
             sys.exit()
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_q:
+        elif e.type == pygame.KEYDOWN:
+            if e.key == pygame.K_q:
                 # Send QUIT event instead?
                 sequencer.stop()
                 midi.close()

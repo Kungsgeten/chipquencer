@@ -1,5 +1,6 @@
 import pygame.time
 import math
+import bisect
 from operator import attrgetter
 
 import midi
@@ -65,12 +66,12 @@ def update():
 
 update.deltasum = 0
 update.next_ppq = 0
-
-
+        
 # Timestamps is measured in 16ths
 class Part(object):
     def __init__(self):
-        self._events = []  # sorted after the event timestamps
+        self._events = []  # events in the loop, sorted by timestamp
+        self.future_events = []
         self.length = 16  # in 16th notes
         self._mute = False
         self.next_timestamp = 0
@@ -103,6 +104,7 @@ class Part(object):
         """Update the part and trigger new events. Check if part has looped."""
         global running_time, running
         timestamp = running_time % self.length
+
         # Part has looped?
         if self.finished and math.floor(timestamp) == 0 and self._events:
             if self.toggle:
@@ -112,10 +114,19 @@ class Part(object):
         if running and not self.finished and timestamp >= self.next_timestamp:
             self._trigger_event()
 
+        # Check future events
+        if running:
+            while(self.future_events and
+                  self.future_events[0].timestamp <= running_time):
+                event = self.future_events[0]
+                event.function(*event.params)
+                self.future_events.pop(0)
+
     def stop(self):
         """When the part is stopped."""
         # Stop all notes
         midi.out.write_short(midi.CC + self.channel, 120, 127)
+        self.future_events = []
 
     def start(self):
         """When the part starts from the beginning."""
@@ -126,17 +137,18 @@ class Part(object):
         except:
             self.finished = True
 
-    def append(self, events):
-        """Add new events to the part"""
-        for e in events:
-            e.timestamp = e.timestamp % self.length
-        self._events.extend(events)
+    def append_future(self, event):
+        bisect.insort(self.future_events, event)
+            
+    def append(self, event):
+        """Add new event to the part"""
+        event.timestamp = event.timestamp % self.length
+        self._events.append(event)
         self._sort()
 
-    def append_notes(self, notes):
-        """Add new events created by note() function"""
-        for n in notes:
-            self.append(n)
+    def delete(self, event):
+        self._events.remove(event)
+        self._sort()
 
     def note_elements(self):
         """Return all note_on events"""
@@ -146,10 +158,9 @@ class Part(object):
         """Sort self._events. Calc self.element and self.next_timestamp."""
         global running_time
         if len(self._events) == 0:
-            print 'no events'
             self.start()
             return
-        self._events.sort(key=attrgetter('timestamp', 'data1', 'data2'))
+        self._events.sort()
         # Calculate last element played
         step_in_loop = running_time % self.length
         self.element = len(self._events) - 1
@@ -166,11 +177,12 @@ class Part(object):
         """Trigger next/current event. Update self.element. Check if finished."""
         # trigger all events with the correct timestamp
         element_to_play = (self.element + 1) % len(self._events)
-        while self._events[element_to_play].timestamp == self.next_timestamp:
+        while self._events[element_to_play].timestamp == self.next_timestamp and not self.finished:
             if not self.mute:
                 event = self._events[element_to_play]
-                status = event.status + self.channel
-                midi.out.write_short(status, event.data1, event.data2)
+                event.function(*event.params)
+                # status = event.status + self.channel
+                # midi.out.write_short(status, event.data1, event.data2)
             self.element = element_to_play
             if self.element == len(self._events) - 1:
                 self.finished = True

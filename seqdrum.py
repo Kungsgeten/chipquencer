@@ -2,6 +2,7 @@ import midi
 import sequencer
 import screen
 import gui
+import event
 from modeline import Modeline
 
 import pygame
@@ -27,23 +28,19 @@ class SeqDrum(screen.Screen):
         note = self.notes[row]
         self.has_changed = True
         if self.grid[row][col]:
-            n = midi.note(note, 120, col, 1)
-            self.part.append_notes([n])
+            self.part.append(event.Event(col,
+                                         event.note_on,
+                                         [self.part,
+                                          note,
+                                          120,
+                                          1]))
         else:
-            # FIX: hacky delete
-            for i, event in enumerate(self.part._events):
-                if event.off and event.timestamp == col and event.data1 == note:
-                    offevent = event.off
-                    for j, oe in enumerate(self.part._events):
-                        if oe == offevent:
-                            if i > j:
-                                del self.part._events[i]
-                                del self.part._events[j]
-                            else:
-                                del self.part._events[j]
-                                del self.part._events[i]
-                                break
-                        self.part._sort()
+            for e in self.part._events:
+                if e.timestamp == col and e.type() == 'note_on':
+                    enote = e.params[1]
+                    if enote == note:
+                        self.part.delete(e)
+                        break
 
     def _update(self, events):
         curstep = math.floor(sequencer.running_time % self.part.length)
