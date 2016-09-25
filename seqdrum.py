@@ -23,7 +23,27 @@ class SeqDrum(screen.Screen):
         self.last_curstep = -1
 
     def step_clicked(self, row, col):
-        pass
+        self.grid[row][col] = not self.grid[row][col]
+        note = self.notes[row]
+        self.has_changed = True
+        if self.grid[row][col]:
+            n = midi.note(note, 120, col, 1)
+            self.part.append_notes([n])
+        else:
+            # FIX: hacky delete
+            for i, event in enumerate(self.part._events):
+                if event.off and event.timestamp == col and event.data1 == note:
+                    offevent = event.off
+                    for j, oe in enumerate(self.part._events):
+                        if oe == offevent:
+                            if i > j:
+                                del self.part._events[i]
+                                del self.part._events[j]
+                            else:
+                                del self.part._events[j]
+                                del self.part._events[i]
+                                break
+                        self.part._sort()
 
     def _update(self, events):
         curstep = math.floor(sequencer.running_time % self.part.length)
@@ -35,27 +55,7 @@ class SeqDrum(screen.Screen):
                 row = y // self.STEP_SIZE
                 if row < len(self.grid):
                     col = x // self.STEP_SIZE
-                    self.grid[row][col] = not self.grid[row][col]
-                    note = self.notes[row]
-                    self.has_changed = True
-                    if self.grid[row][col]:
-                        n = midi.note(note, 120, col, 1)
-                        self.part.append_notes([n])
-                    else:
-                        # FIX: hacky delete
-                        for i, event in enumerate(self.part._events):
-                            if event.off and event.timestamp == col and event.data1 == note:
-                                offevent = event.off
-                                for j, oe in enumerate(self.part._events):
-                                    if oe == offevent:
-                                        if i > j:
-                                            del self.part._events[i]
-                                            del self.part._events[j]
-                                        else:
-                                            del self.part._events[j]
-                                            del self.part._events[i]
-                                        break
-                        self.part._sort()
+                    self.step_clicked(row, col)
 
     def _render(self, surface):
         curstep = math.floor(sequencer.running_time % self.part.length)

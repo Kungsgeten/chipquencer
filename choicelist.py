@@ -13,7 +13,9 @@ class ChoiceList(screen.Screen):
     def __init__(self, choices, modelinetext=''):
         self.scrolling = False
         self.choices = choices
+        self.returnkey = modelinetext.lower().replace(' ', '_')
         self.modeline = Modeline()
+        self.modeline.strings = [modelinetext]
         self.rects = []
         self.listsurface = pygame.Surface((gui.SCREEN_WIDTH - self.SCROLL_WIDTH,
                                        self.ITEM_HEIGHT * len(choices)))
