@@ -10,11 +10,12 @@ MC_RECIEVE = 2
 
 parts = []
 bpm = 100.0
-clock_time = 0 # in ms since start
-running_time = 0 # 16th notes pased since start
+clock_time = 0  # in ms since start
+running_time = 0  # 16th notes pased since start
 clock = pygame.time.Clock()
 running = False
 midiclock = MC_SEND
+
 
 def start():
     """Start the sequencer."""
@@ -24,6 +25,7 @@ def start():
         part.start()
     if midiclock == MC_SEND:
         midi.out.write_short(midi.MC_START)
+
 
 def stop():
     """Stop the sequencer."""
@@ -36,9 +38,9 @@ def stop():
     if midiclock == MC_SEND:
         midi.out.write_short(midi.MC_STOP)
 
+
 def update():
-    """
-    Update the sequencer.
+    """Update the sequencer.
 
     Should be run every frame if the sequencer has started.
     """
@@ -63,6 +65,7 @@ def update():
 
 update.deltasum = 0
 update.next_ppq = 0
+
 
 # Timestamps is measured in 16ths
 class Part(object):
@@ -140,7 +143,7 @@ class Part(object):
         return [event for event in self._events if event.off]
 
     def _sort(self):
-        """Sort self._events. Calculate self.element and self.next_timestamp."""
+        """Sort self._events. Calc self.element and self.next_timestamp."""
         global running_time
         if len(self._events) == 0:
             print 'no events'
@@ -153,19 +156,21 @@ class Part(object):
         for i, e in enumerate(self._events):
             if e.timestamp < step_in_loop:
                 self.element = i
-        self.next_timestamp = self._events[(self.element + 1) % len(self._events)].timestamp
+        next_element = (self.element + 1) % len(self._events)
+        self.next_timestamp = self._events[next_element].timestamp
         self.finished = False
         if step_in_loop > self._events[-1].timestamp:
             self.finished = True
 
     def _trigger_event(self):
-        """Trigger next (current) event. Update self.element. Check if finished."""
+        """Trigger next/current event. Update self.element. Check if finished."""
         # trigger all events with the correct timestamp
         element_to_play = (self.element + 1) % len(self._events)
         while self._events[element_to_play].timestamp == self.next_timestamp:
             if not self.mute:
                 event = self._events[element_to_play]
-                midi.out.write_short(event.status + self.channel, event.data1, event.data2)
+                status = event.status + self.channel
+                midi.out.write_short(status, event.data1, event.data2)
             self.element = element_to_play
             if self.element == len(self._events) - 1:
                 self.finished = True

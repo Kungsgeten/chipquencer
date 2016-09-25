@@ -4,20 +4,26 @@ import screen
 import gui
 from modeline import Modeline
 
-import math, pygame
+import pygame
+import math
+
 
 class SeqDrum(screen.Screen):
     STEP_SIZE = gui.SCREEN_WIDTH // 16
+
     def __init__(self, part, notes=None):
         self.part = part
         self.steps = []
         if notes is None:
-            notes = [36, 37, 38, 39, 40, 41, 42, 43] # test
+            notes = [36, 37, 38, 39, 40, 41, 42, 43]  # test
         self.notes = list(reversed(notes))
         self.grid = [[False] * self.part.length for n in self.notes]
 
         self.modeline = Modeline()
         self.last_curstep = -1
+
+    def step_clicked(self, row, col):
+        pass
 
     def _update(self, events):
         curstep = math.floor(sequencer.running_time % self.part.length)
