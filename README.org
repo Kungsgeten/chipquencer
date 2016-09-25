@@ -3,3 +3,7 @@
 * Not for use
 
 Chipquencer is meant to be a MIDI sequencer for PocketCHIP. At the moment this repository is only a playground, and a way for me to sync code between the PocketCHIP and my main computer.
+
+* Fonts
+
+The fonts used are /ProggyClean/, /ProggySmall/, and /ProggyTiny/ by Tristan Grimmer. The license for these can be found in the /fonts/ folder.
