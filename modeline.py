@@ -1,13 +1,30 @@
 import pygame
 import gui
 
-class Modeline():
+
+class Modeline(object):
     HEIGHT = 12
     pygame.font.init()
     font = gui.FONT_SMALL
 
-    def __init__(self):
-        self.strings = []
+    def __init__(self, sections=0):
+        self.strings = [''] * sections
+
+    def __len__(self):
+        return len(self.strings)
+
+    def __getitem__(self, key):
+        return self.strings[key]
+
+    def __setitem__(self, key, value):
+        self.strings[key] = value
+
+    def __iter__(self):
+        for x in self.strings:
+            yield x
+
+    def __contains__(self, item):
+        return item in self.strings
 
     def render(self, surface):
         top = gui.SCREEN_HEIGHT - self.HEIGHT
@@ -20,9 +37,3 @@ class Modeline():
             text = self.font.render(s, False, COLOR)
             surface.blit(text, (x, top + 1))
             x += text.get_rect().width + OFFSET
-        # for i in range(4):
-        #     text = self.font.render(self.buttonstrings[i], False, gui.C_DARKEST)
-        #     textpos = text.get_rect()
-        #     textpos.centerx = BUTTON_WIDTH * i + (BUTTON_WIDTH / 2)
-        #     surface.blit(text, (textpos.x, top + 1))
-        # text = self.font.render(self.text, False, gui.C_DARKER)

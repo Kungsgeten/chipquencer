@@ -145,12 +145,12 @@ class Slider:
         self._pixels = 0.0
 
     def update(self, events, finetune=False):
-        for e in events:
-            if e.type == pygame.MOUSEBUTTONUP:
-                self.active = False
-            elif e.type == pygame.MOUSEBUTTONDOWN:
-                self.active = self.rect.collidepoint(e.pos)
-                pygame.mouse.get_rel()
+        # for e in events:
+        #     if e.type == pygame.MOUSEBUTTONUP:
+        #         self.active = False
+        #     elif e.type == pygame.MOUSEBUTTONDOWN:
+        #         self.active = self.rect.collidepoint(e.pos)
+        #         pygame.mouse.get_rel()
         if self.active:
             relx, rely = pygame.mouse.get_rel()
             if finetune:
@@ -160,8 +160,14 @@ class Slider:
                 self._pixels = 0.0
             elif self._pixels > self.rect.height:
                 self._pixels = float(self.rect.height)
+            if pygame.MOUSEBUTTONUP in [e.type for e in events]:
+                self.active = False
             return self.get_data()
-        return None
+        else:
+            if pygame.MOUSEBUTTONDOWN in [e.type for e in events]:
+                self.active = self.rect.collidepoint(e.pos)
+                pygame.mouse.get_rel()
+            return None
 
     def render(self, surface):
         pygame.draw.rect(surface, C_PRIMARY, self.rect)

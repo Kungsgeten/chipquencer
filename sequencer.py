@@ -16,7 +16,7 @@ running_time = 0  # 16th notes pased since start
 clock = pygame.time.Clock()
 running = False
 midiclock = MC_SEND
-
+new_step = False
 
 def start():
     """Start the sequencer."""
@@ -30,10 +30,11 @@ def start():
 
 def stop():
     """Stop the sequencer."""
-    global clock_time, running_time, running
+    global clock_time, running_time, running, new_step
     clock_time = 0
     running_time = 0
     running = False
+    new_step = False
     for part in parts:
         part.stop()
     if midiclock == MC_SEND:
@@ -45,11 +46,13 @@ def update():
 
     Should be run every frame if the sequencer has started.
     """
-    global running_time, clock_time
+    global running_time, clock_time, new_step
     delta = clock.tick(100)
     if running:
         clock_time += delta * 0.001
+        old_running_time = int(running_time)
         running_time = clock_time / ((60.0 / bpm) / 4.0)
+        new_step = old_running_time != int(running_time)
     for part in parts:
         part.update()
     if midiclock == MC_SEND and midi.out:
@@ -66,8 +69,8 @@ def update():
 
 update.deltasum = 0
 update.next_ppq = 0
-        
-# Timestamps is measured in 16ths
+
+# Timestamps are measured in 16ths
 class Part(object):
     def __init__(self):
         self._events = []  # events in the loop, sorted by timestamp
@@ -80,6 +83,7 @@ class Part(object):
         self.channel = 0
         self.toggle = False
         self.name = 'Test'
+        self.last_measure = -1
 
     def __str__(self):
         return self.name + str([str(e) for e in self._events])
@@ -104,9 +108,10 @@ class Part(object):
         """Update the part and trigger new events. Check if part has looped."""
         global running_time, running
         timestamp = running_time % self.length
+        measure = running_time // self.length
 
         # Part has looped?
-        if self.finished and math.floor(timestamp) == 0 and self._events:
+        if self.finished and measure != self.last_measure and self._events:
             if self.toggle:
                 self.toggle = False
                 self.mute = not self.mute
@@ -122,6 +127,8 @@ class Part(object):
                 event.function(*event.params)
                 self.future_events.pop(0)
 
+        self.last_measure = measure
+
     def stop(self):
         """When the part is stopped."""
         # Stop all notes
@@ -132,6 +139,7 @@ class Part(object):
         """When the part starts from the beginning."""
         self.element = 0
         self.finished = False
+        self.last_measure = -1
         try:
             self.next_timestamp = self._events[0].timestamp
         except:
@@ -139,7 +147,7 @@ class Part(object):
 
     def append_future(self, event):
         bisect.insort(self.future_events, event)
-            
+
     def append(self, event):
         """Add new event to the part"""
         event.timestamp = event.timestamp % self.length
@@ -150,9 +158,11 @@ class Part(object):
         self._events.remove(event)
         self._sort()
 
-    def note_elements(self):
-        """Return all note_on events"""
-        return [event for event in self._events if event.off]
+    def events(self, type=None):
+        """Return all events of given type. All events if type==None."""
+        if type:
+            return [e for e in self._events if e.type() == type]
+        return self._events
 
     def _sort(self):
         """Sort self._events. Calc self.element and self.next_timestamp."""
@@ -181,8 +191,6 @@ class Part(object):
             if not self.mute:
                 event = self._events[element_to_play]
                 event.function(*event.params)
-                # status = event.status + self.channel
-                # midi.out.write_short(status, event.data1, event.data2)
             self.element = element_to_play
             if self.element == len(self._events) - 1:
                 self.finished = True

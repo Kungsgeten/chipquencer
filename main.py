@@ -16,8 +16,8 @@ settings.load_instruments()
 
 melody = sequencer.Part()
 w, h = 4, 4
-melody.length = w * h * 2
-# sequencer.parts.append(melody)
+melody.length = w * h
+sequencer.parts.append(melody)
 
 drums = sequencer.Part()
 drums.length = 16
@@ -32,7 +32,7 @@ drumgrid = seqdrum.SeqDrum(drums)
 
 display = pygame.display.set_mode(gui.SCREEN_SIZE)
 
-# screen.seqs.append(melgrid)
+screen.seqs.append(melgrid)
 screen.seqs.append(drumgrid)
 
 screen.stack.append(partview.PartView())

@@ -1,8 +1,8 @@
-import midi
 import sequencer
 import screen
 import gui
 import event
+
 from modeline import Modeline
 
 import pygame
@@ -37,8 +37,7 @@ class SeqDrum(screen.Screen):
         else:
             for e in self.part._events:
                 if e.timestamp == col and e.type() == 'note_on':
-                    enote = e.params[1]
-                    if enote == note:
+                    if e.note == note:
                         self.part.delete(e)
                         break
 
