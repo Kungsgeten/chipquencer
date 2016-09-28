@@ -12,9 +12,12 @@ class Event(object):
     def type(self):
         return self.function.__name__
 
+    def call(self, part):
+        self.function(part, *self.params)
+
     def __getattr__(self, name):
         # Checks if attribute is in self.params
-        for i, n in enumerate(self.function.__code__.co_varnames):
+        for i, n in enumerate(self.function.__code__.co_varnames[1:]):
             if n == name:
                 return self.params[i]
         error = "'{}' event has no '{}' attribute".format(self.type(), name)
@@ -22,7 +25,7 @@ class Event(object):
 
     def __setattr__(self, name, value):
         # Checks if attribute is in self.params
-        for i, n in enumerate(self.function.__code__.co_varnames):
+        for i, n in enumerate(self.function.__code__.co_varnames[1:]):
             if n == name:
                 self.params[i] = value
                 return
@@ -44,11 +47,13 @@ class Event(object):
     def __ne__(self, other):
         return self.timestamp != other.timestamp
 
+
 def note_off(part, note):
     midi.out.write_short(midi.NOTE_ON + part.channel, note, 0)
+
 
 def note_on(part, note, velocity, length):
     midi.out.write_short(midi.NOTE_ON + part.channel, note, velocity)
     part.append_future(Event(sequencer.running_time + length,
                              note_off,
-                             [part, note]))
+                             [note]))

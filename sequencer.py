@@ -1,7 +1,6 @@
 import pygame.time
-import math
 import bisect
-from operator import attrgetter
+import yaml
 
 import midi
 
@@ -70,10 +69,14 @@ def update():
 update.deltasum = 0
 update.next_ppq = 0
 
+
 # Timestamps are measured in 16ths
 class Part(object):
-    def __init__(self, name, length=16):
-        self._events = []  # events in the loop, sorted by timestamp
+    def __init__(self, name, length=16, events=None):
+        if events is None:
+            self._events = []
+        else:
+            self._events = events  # events in the loop, sorted by timestamp
         self.length = length  # in 16th notes
         self.name = name
 
@@ -86,8 +89,10 @@ class Part(object):
         self.toggle = False
         self.last_measure = -1
 
-    def __str__(self):
-        return self.name + str([str(e) for e in self._events])
+    def __repr__(self):
+        return 'Part(name={}, length={}, events={})'.format(self.name,
+                                                            self.length,
+                                                            self._events)
 
     @property
     def mute(self):
@@ -98,12 +103,6 @@ class Part(object):
         if value:
             self.stop()
         self._mute = value
-
-    def debug(self):
-        print "Element: ", self.element
-        print "Finished: ", self.finished
-        print "Next timestamp: ", self.next_timestamp
-        midi.out.write_short(midi.PC + self.channel, 50, 0)
 
     def update(self):
         """Update the part and trigger new events. Check if part has looped."""
@@ -125,7 +124,7 @@ class Part(object):
             while(self.future_events and
                   self.future_events[0].timestamp <= running_time):
                 event = self.future_events[0]
-                event.function(*event.params)
+                event.call(self)
                 self.future_events.pop(0)
 
         self.last_measure = measure
@@ -151,6 +150,7 @@ class Part(object):
 
     def append(self, event):
         """Add new event to the part"""
+        print self.name
         event.timestamp = event.timestamp % self.length
         self._events.append(event)
         self._sort()
@@ -191,7 +191,7 @@ class Part(object):
         while self._events[element_to_play].timestamp == self.next_timestamp and not self.finished:
             if not self.mute:
                 event = self._events[element_to_play]
-                event.function(*event.params)
+                event.call(self)
             self.element = element_to_play
             if self.element == len(self._events) - 1:
                 self.finished = True

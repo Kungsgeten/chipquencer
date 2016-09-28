@@ -6,11 +6,9 @@ import settings
 import gui
 import screen
 import partview
-import event
 
 import sys
 import pygame
-import math
 import thread
 import yaml
 
@@ -60,6 +58,7 @@ if midi.init():
 while 1:
     if not consoling:
         thread.start_new_thread(threadedConsole, ())
+
     events = pygame.event.get()
     screen.stack[-1].update(events)
     for e in events:

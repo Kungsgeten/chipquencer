@@ -229,13 +229,12 @@ class SeqGrid(Screen):
         ts = self.step_timestamp(x, y)
         note_event = event.Event(ts + self.last_offset,
                                  event.note_on,
-                                 [self.part, note,
-                                  self.last_vel, self.last_length])
+                                 [note, self.last_vel, self.last_length])
         self.part.append(note_event)
 
     def keyboard_mode_cycle(self):
         """Cycle between keyboard modes."""
-        kbm_value = (self.keyboard_mode.value + 1) % len(KeyboardMode) + 1
+        kbm_value = (self.keyboard_mode.value + 1) % len(KeyboardMode)
         self.keyboard_mode = KeyboardMode(kbm_value)
         km_modeline_element = ModelineSections.KeyboardMode
         self.modeline.strings[km_modeline_element] = self.keyboard_mode.name
@@ -261,8 +260,7 @@ class SeqGrid(Screen):
             ts = int(round(sequencer.running_time)) % self.part.length
             note_event = event.Event(ts + self.last_offset,
                                      event.note_on,
-                                     [self.part, note,
-                                      self.last_vel, self.last_length])
+                                     [note, self.last_vel, self.last_length])
             self.part.append(note_event)
 
     def keydown_events(self, keyevents):

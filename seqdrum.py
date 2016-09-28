@@ -30,10 +30,8 @@ class SeqDrum(screen.Screen):
         if self.grid[row][col]:
             self.part.append(event.Event(col,
                                          event.note_on,
-                                         [self.part,
-                                          note,
-                                          120,
-                                          1]))
+                                         [note, 120, 1]))
+
         else:
             for e in self.part._events:
                 if e.timestamp == col and e.type() == 'note_on':
