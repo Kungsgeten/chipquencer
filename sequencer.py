@@ -72,7 +72,7 @@ update.next_ppq = 0
 
 # Timestamps are measured in 16ths
 class Part(object):
-    def __init__(self, name, length=16, events=None):
+    def __init__(self, name, length=16, channel=0, events=None):
         if events is None:
             self._events = []
         else:
@@ -85,7 +85,7 @@ class Part(object):
         self.next_timestamp = 0
         self.element = 0  # the last element checked
         self.finished = False  # the last event has triggered?
-        self.channel = 0
+        self.channel = channel
         self.toggle = False
         self.last_measure = -1
 
@@ -198,3 +198,20 @@ class Part(object):
             element_to_play = (self.element + 1) % len(self._events)
 
         self.next_timestamp = self._events[element_to_play].timestamp
+
+
+# YAML part representation
+def part_representer(dumper, data):
+    mapping = {'name': data.name,
+               'length': data.length,
+               'channel': data.channel,
+               'events': data._events}
+    return dumper.represent_mapping(u'!part', mapping)
+
+
+def part_constructor(loader, node):
+    m = loader.construct_mapping(node)
+    return Part(m['name'], m['length'], m['channel'], m['events'])
+
+yaml.add_representer(Part, part_representer)
+yaml.add_constructor(u'!part', part_constructor)

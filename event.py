@@ -15,6 +15,11 @@ class Event(object):
     def call(self, part):
         self.function(part, *self.params)
 
+    def __repr__(self):
+        return 'Event({}, {}, {})'.format(self.timestamp,
+                                             self.type(),
+                                             self.params)
+
     def __getattr__(self, name):
         # Checks if attribute is in self.params
         for i, n in enumerate(self.function.__code__.co_varnames[1:]):
