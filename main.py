@@ -8,19 +8,37 @@ import screen
 import partview
 import event
 
-import sys, pygame, math
+import sys
+import pygame
+import math
+import thread
+import yaml
+
+consoling = False
+
+
+def threadedConsole():
+    global consoling
+    consoling = True
+    read = raw_input(">>> ")
+    try:
+        print eval(read)
+    except:
+        try:
+            exec(read)
+        except Exception as error:
+            print error
+    consoling = False
 
 # Setup
 
 settings.load_instruments()
 
-melody = sequencer.Part()
 w, h = 4, 4
-melody.length = w * h
+melody = sequencer.Part('Melody', w * h)
 sequencer.parts.append(melody)
 
-drums = sequencer.Part()
-drums.length = 16
+drums = sequencer.Part('Drums')
 drums.channel = 9
 
 sequencer.parts.append(drums)
@@ -40,6 +58,8 @@ if midi.init():
     sequencer.start()
 
 while 1:
+    if not consoling:
+        thread.start_new_thread(threadedConsole, ())
     events = pygame.event.get()
     screen.stack[-1].update(events)
     for e in events:
