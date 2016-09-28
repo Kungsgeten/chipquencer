@@ -79,6 +79,7 @@ class SeqGrid(Screen):
         self.modeline = Modeline(len(ModelineSections))
         self.set_grid(width, height)
         self.selected = [Step(0, 0, -1)]
+        self.step_dragged = None
 
         self.keyboard_root = 60
         self.keyboard_mode = KeyboardMode.Tap
@@ -164,7 +165,22 @@ class SeqGrid(Screen):
                 if (e.type() == type
                     and (step.index < 0 or step.index == i))]
 
+    def step_at_pos(self, pos):
+        """Get step at pos' grid position as a (x, y) tuple."""
+        cols = len(self.grid)
+        rows = len(self.grid[0])
+        step_width, step_height = self.grid[0][0].size
+        grid_width = cols * step_width  # self.GRID_WIDTH seems to be off
+        grid_height = rows * step_height
+
+        x, y = pos
+
+        if(x < grid_width and y < grid_height):
+            return (x // self.grid[0][0].width, y // self.grid[0][0].height)
+        return None
+
     def step_clicked(self, x, y):
+        self.step_dragged = (x, y)
         self.has_changed = True
         mods = pygame.key.get_mods()
 
@@ -411,13 +427,25 @@ class SeqGrid(Screen):
 
         for e in events:
             if e.type == pygame.MOUSEBUTTONDOWN:
-                mx, my = e.pos
-                grid_width = self.grid[0][0].width * len(self.grid)
-                grid_height = self.grid[0][0].height * len(self.grid[0])
-                if(mx < grid_width and my < grid_height):
-                    x = mx // self.grid[0][0].width
-                    y = my // self.grid[0][0].height
-                    self.step_clicked(x, y)
+                step = self.step_at_pos(e.pos)
+                if step:
+                    self.step_clicked(*step)
+            elif e.type == pygame.MOUSEBUTTONUP:
+                if self.step_dragged:
+                    step = self.step_at_pos(e.pos)
+                    # Drag outside grid to delete
+                    if step is None:
+                        self.delete_step(*self.step_dragged)
+                    # Drag to another step to copy/replace
+                    elif step != self.step_dragged:
+                        new_ts = self.step_timestamp(*step)
+                        self.delete_step(*step)
+                        for ev in self.step_events(*self.step_dragged):
+                            event_copy = event.Event(new_ts + ev.timestamp % 1,
+                                                     ev.function,
+                                                     ev.params)
+                            self.part.append(event_copy)
+                self.step_dragged = None
 
     def render_step_events(self, surface, x, y):
         xpos, ypos = self.grid[x][y].topleft
