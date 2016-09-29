@@ -23,35 +23,54 @@ class PartView(screen.Screen):
 
     def update_partrects(self):
         self.partrects = []
-        for i, part in enumerate(sequencer.parts):
+        for i, part in enumerate(sequencer.parts()):
             pos = (i * (self.PART_BOX_SIZE + self.SPACING) + self.SPACING,
                    (self.PART_BOX_SIZE + self.SPACING) * (i // 4) + self.SPACING)
             rect = pygame.Rect(pos, (self.PART_BOX_SIZE, self.PART_BOX_SIZE))
             self.partrects.append(rect)
-        i = len(sequencer.parts)
+        i = len(sequencer.parts())
         pos = (i * (self.PART_BOX_SIZE + self.SPACING) + self.SPACING,
                (self.PART_BOX_SIZE + self.SPACING) * (i // 4) + self.SPACING)
         rect = pygame.Rect(pos, (self.PART_BOX_SIZE, self.PART_BOX_SIZE))
         self.partrects.append(rect)
 
+    def keydown_events(self, keyevents):
+        """Handle pygame keydown events."""
+        mods = pygame.key.get_mods()
+        for e in keyevents:
+            if mods & pygame.KMOD_SHIFT:
+                pass
+            elif mods & pygame.KMOD_CTRL:
+                pass
+            elif mods & pygame.KMOD_ALT:
+                pass
+            else:
+                pass
+
+    def mousedown_events(self, mouseevents):
+        for e in mouseevents:
+            x, y = e.pos
+            for i, rect in enumerate(self.partrects):
+                if rect.collidepoint(e.pos):
+                    if i == len(self.partrects) - 1:
+                        screen.stack.append(PartEdit(sequencer.Part(), None))
+                    # Toggle
+                    # elif self.modeline.buttons[0].down:
+                    #     sequencer.parts()[i].toggle = True
+                    # # Mute button
+                    # elif self.modeline.buttons[1].down:
+                    #     sequencer.parts()[i].mute = not sequencer.parts()[i].mute
+                    else:
+                        clip = sequencer.project['scenes'][sequencer.current_scene][i]
+                        screen.stack.append(clip)
+                        # screen.stack.append(screen.seqs[i])
+                    return
+
+
     def _update(self, events):
         self.has_changed = True
-        for e in events:
-            if e.type == pygame.MOUSEBUTTONDOWN:
-                x, y = e.pos
-                for i, rect in enumerate(self.partrects):
-                    if rect.collidepoint(e.pos):
-                        if i == len(self.partrects) - 1:
-                            screen.stack.append(PartEdit(sequencer.Part(), None))
-                        # Toggle
-                        # elif self.modeline.buttons[0].down:
-                        #     sequencer.parts[i].toggle = True
-                        # # Mute button
-                        # elif self.modeline.buttons[1].down:
-                        #     sequencer.parts[i].mute = not sequencer.parts[i].mute
-                        else:
-                            screen.stack.append(screen.seqs[i])
-                        return
+        self.keydown_events((e for e in events if e.type == pygame.KEYDOWN))
+        self.keydown_events((e for e in events if e.type == pygame.MOUSEBUTTONDOWN))
 
     def focus(self, *args, **kwargs):
         # Update midi out device, see midi.py
@@ -64,7 +83,7 @@ class PartView(screen.Screen):
 
     def _render(self, surface):
         # Render part boxes
-        for i, part in enumerate(sequencer.parts):
+        for i, part in enumerate(sequencer.parts()):
             rect = self.partrects[i]
             if part.toggle:
                 rectcolor = gui.C_DARKEST

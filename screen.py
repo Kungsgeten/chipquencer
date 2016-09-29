@@ -3,7 +3,6 @@ import pygame
 import gui
 
 stack = [] # a stack of the current screens
-seqs = [] # a list of each sequencer part
 
 def pop(*args, **kwargs):
     stack.pop()

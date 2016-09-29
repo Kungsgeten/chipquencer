@@ -1,15 +1,14 @@
+import midi
+import project
+
 import pygame.time
 import bisect
 import yaml
-
-import midi
 
 MC_NONE = 0
 MC_SEND = 1
 MC_RECIEVE = 2
 
-parts = []
-bpm = 100.0
 clock_time = 0  # in ms since start
 running_time = 0  # 16th notes pased since start
 clock = pygame.time.Clock()
@@ -17,11 +16,18 @@ running = False
 midiclock = MC_SEND
 new_step = False
 
+project = {'name': 'Unnamed',
+           'path': None,
+           'bpm': 135,
+           'midi_clock': None,
+           'scenes': [[]]}
+current_scene = 0
+
 def start():
     """Start the sequencer."""
     global running
     running = True
-    for part in parts:
+    for part in parts():
         part.start()
     if midiclock == MC_SEND:
         midi.out.write_short(midi.MC_START)
@@ -34,10 +40,31 @@ def stop():
     running_time = 0
     running = False
     new_step = False
-    for part in parts:
+    for part in parts():
         part.stop()
     if midiclock == MC_SEND:
         midi.out.write_short(midi.MC_STOP)
+
+def toggle():
+    """Starts/stops the sequencer."""
+    stop() if running else start()
+
+def parts():
+    return [clip.part for clip in project['scenes'][current_scene]]
+
+def save(path=None):
+    """The path is relative to the projects folder."""
+    if path is None:
+        path = project['path']
+    with open(path, 'w') as f:
+        yaml.dump(project, f)
+
+def load(path):
+    global project
+    with open(path, 'r') as f:
+        stop()
+        project = yaml.load(f)
+        start()
 
 
 def update():
@@ -47,12 +74,13 @@ def update():
     """
     global running_time, clock_time, new_step
     delta = clock.tick(100)
+    bpm = project['bpm']
     if running:
         clock_time += delta * 0.001
         old_running_time = int(running_time)
         running_time = clock_time / ((60.0 / bpm) / 4.0)
         new_step = old_running_time != int(running_time)
-    for part in parts:
+    for part in parts():
         part.update()
     if midiclock == MC_SEND and midi.out:
         # 24 ppq
@@ -83,7 +111,7 @@ class Part(object):
         self.future_events = []
         self._mute = False
         self.next_timestamp = 0
-        self.element = 0  # the last element checked
+        self.element = -1  # the last element checked
         self.finished = False  # the last event has triggered?
         self.channel = channel
         self.toggle = False
@@ -116,6 +144,7 @@ class Part(object):
                 self.toggle = False
                 self.mute = not self.mute
             self.finished = False
+
         if running and not self.finished and timestamp >= self.next_timestamp:
             self._trigger_event()
 
@@ -137,9 +166,9 @@ class Part(object):
 
     def start(self):
         """When the part starts from the beginning."""
-        self.element = 0
         self.finished = False
         self.last_measure = -1
+        self.element = -1
         try:
             self.next_timestamp = self._events[0].timestamp
         except:
@@ -150,7 +179,6 @@ class Part(object):
 
     def append(self, event):
         """Add new event to the part"""
-        print self.name
         event.timestamp = event.timestamp % self.length
         self._events.append(event)
         self._sort()
