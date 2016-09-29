@@ -5,7 +5,7 @@ import seqdrum
 import settings
 import gui
 import screen
-import partview
+import sceneview
 
 import sys
 import pygame
@@ -34,7 +34,7 @@ w, h = 4, 4
 melody = seqgrid.SeqGrid(sequencer.Part('Melody', w * h), w, h)
 sequencer.project['scenes'][sequencer.current_scene].append(melody)
 
-screen.stack.append(partview.PartView())
+screen.stack.append(sceneview.SceneView())
 if midi.init():
     sequencer.start()
 
@@ -51,12 +51,6 @@ while 1:
             sequencer.stop()
             midi.close()
             sys.exit()
-        elif e.type == pygame.KEYDOWN:
-            if e.key == pygame.K_q:
-                # Send QUIT event instead?
-                sequencer.stop()
-                midi.close()
-                sys.exit()
 
     pygame.event.pump()
     sequencer.update()
