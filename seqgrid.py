@@ -9,6 +9,7 @@ from screen import Screen
 
 import pygame
 import math
+import yaml
 
 from enum import IntEnum
 from collections import namedtuple
@@ -74,15 +75,16 @@ class SeqGrid(Screen):
     MENU_WIDTH = 133
     GRID_WIDTH = gui.SCREEN_WIDTH - MENU_WIDTH
 
-    def __init__(self, part, width=4, height=4):
+    def __init__(self, part, width=4, height=4,
+                 kb_root=60, kb_mode=KeyboardMode.Tap):
         self.part = part
         self.modeline = Modeline(len(ModelineSections))
         self.set_grid(width, height)
         self.selected = [Step(0, 0, -1)]
         self.step_dragged = None
 
-        self.keyboard_root = 60
-        self.keyboard_mode = KeyboardMode.Tap
+        self.keyboard_root = kb_root
+        self.keyboard_mode = kb_mode
         self.key_notes_pressed = []
         km_modeline_element = ModelineSections.KeyboardMode
         self.modeline.strings[km_modeline_element] = self.keyboard_mode.name
@@ -537,3 +539,21 @@ class SeqGrid(Screen):
         self.modeline.render(surface)
 
         return surface
+
+
+# YAML SeqGrid representation
+def seqgrid_representer(dumper, data):
+    mapping = {'part': data.part,
+               'width': len(data.grid),
+               'height': len(data.grid[0]),
+               'root': data.keyboard_root,
+               'mode': data.keyboard_mode}
+    return dumper.represent_mapping(u'!seqgrid', mapping)
+
+
+def seqgrid_constructor(loader, node):
+    m = loader.construct_mapping(node)
+    return SeqGrid(m['part'], m['width'], m['height'], m['root'], m['mode'])
+
+yaml.add_representer(SeqGrid, seqgrid_representer)
+yaml.add_constructor(u'!seqgrid', seqgrid_constructor)

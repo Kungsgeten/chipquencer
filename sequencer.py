@@ -200,7 +200,7 @@ class Part(object):
         self.next_timestamp = self._events[element_to_play].timestamp
 
 
-# YAML part representation
+# YAML Part representation
 def part_representer(dumper, data):
     mapping = {'name': data.name,
                'length': data.length,
