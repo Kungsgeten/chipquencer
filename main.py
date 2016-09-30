@@ -2,6 +2,7 @@ import sequencer
 import midi
 import seqgrid
 import seqdrum
+
 import settings
 import gui
 import screen

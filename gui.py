@@ -31,8 +31,10 @@ class ActionButton:
 
     font = FONT_BIG
 
-    def __init__(self, pos, size, text):
+    def __init__(self, pos, size, text, center_x=False, center_y=False):
         self.text = text
+        self.center_x = center_x
+        self.center_y = center_y
         x, y = pos
         width, height = size
         self.rect = pygame.Rect(x, y, width, height)
@@ -46,7 +48,56 @@ class ActionButton:
     def render(self, surface):
         pygame.draw.rect(surface, C_PRIMARY, self.rect)
         text = self.font.render(self.text, False, C_LIGHTEST)
-        surface.blit(text, (self.rect.x, self.rect.y))
+        xoffset = 2
+        yoffset = 0
+        if self.center_x:
+            xoffset = (self.rect.width - text.get_rect().width) / 2
+        if self.center_y:
+            yoffset = text.get_rect().height / 2
+        surface.blit(text, (self.rect.x + xoffset, self.rect.y + yoffset))
+
+
+class TextField:
+    """A one line text field."""
+    font = FONT_BIG
+
+    def __init__(self, pos, size, text='', center_x=False, center_y=False):
+        self.text = text
+        self.center_x = center_x
+        self.center_y = center_y
+        self.rect = pygame.Rect(pos, size)
+        self.focused = False
+
+    def update(self, events):
+        for e in events:
+            if(e.type == pygame.MOUSEBUTTONDOWN and
+               self.rect.collidepoint(e.pos)):
+                self.focused = not self.focused
+            elif(self.focused and e.type == pygame.KEYDOWN):
+                if e.key == pygame.K_RETURN:
+                    self.focused = False
+                elif e.key == pygame.K_BACKSPACE:
+                    if len(self.text):
+                        self.text = self.text[:-1]
+                else:
+                    char = e.unicode.encode('utf-8')
+                    self.text += char
+
+    def render(self, surface):
+        color = C_PRIMARY
+        if self.focused:
+            color = C_DARKER
+        pygame.draw.rect(surface, color, self.rect)
+        text = self.font.render(self.text, False, C_LIGHTEST, color)
+
+        xoffset = 2
+        yoffset = 0
+        if self.center_x:
+            xoffset = (self.rect.width - text.get_rect().width) / 2
+        if self.center_y:
+            yoffset = text.get_rect().height / 2
+        surface.blit(text, (self.rect.x + xoffset, self.rect.y + yoffset))
+
 
 class Counter:
     """A counter which can be incremented or decremented. Cpunter.value is used to
@@ -56,16 +107,18 @@ class Counter:
 
     def __init__(self, pos, height, text, minimum, maximum, start=None):
         """If start is None it will be set to minimum."""
-        self.pos = pos
-        self.text = text
+        self.pos = x, y = pos
         self.minimum = minimum
         self.maximum = maximum
         self.height = height
-        self.text = self.font.render(text, False, C_LIGHTEST)
-        self.dec = ActionButton((self.text.get_width() + pos[0], pos[1]),
-                                (height, height), '-')
-        self.inc = ActionButton((self.text.get_width() + pos[0] + height * 2, pos[1]),
-                                (height, height), '+')
+        self.text = self.font.render(text, False, C_DARKER)
+        OFFSET = 5
+        self.dec = ActionButton((self.text.get_width() + x + OFFSET, y),
+                                (height, height), '-',
+                                True, True)
+        self.inc = ActionButton((self.text.get_width() + x + height * 2 + OFFSET, y),
+                                (height, height), '+',
+                                True, True)
         self.value = start
         if self.value is None:
             self.value = minimum
@@ -83,10 +136,14 @@ class Counter:
     def render(self, surface):
         self.dec.render(surface)
         self.inc.render(surface)
-        text = self.font.render((str(self.value)), False, C_LIGHTEST)
-        surface.blit(text, (self.text.get_width() +
-                            self.pos[0] + self.height, self.pos[1]))
-        surface.blit(self.text, self.pos)
+
+        number = self.font.render((str(self.value)), False, C_DARKER)
+        yoffset = self.dec.rect.height / 2 - self.text.get_rect().height / 2
+        x = self.dec.rect.right + self.height / 2 - number.get_rect().width / 2
+        y = self.pos[1] + yoffset
+        surface.blit(number, (x, y))
+
+        surface.blit(self.text, (self.pos[0], y))
 
 class RadioButtons:
     """A set of radio buttons, can get the active index by RadioButtons.selected."""

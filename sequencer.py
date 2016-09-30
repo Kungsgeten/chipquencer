@@ -5,6 +5,8 @@ import pygame.time
 import bisect
 import yaml
 
+from threading import Thread
+
 MC_NONE = 0
 MC_SEND = 1
 MC_RECIEVE = 2
@@ -27,11 +29,10 @@ def start():
     """Start the sequencer."""
     global running
     running = True
-    for part in parts():
-        part.start()
     if midiclock == MC_SEND:
         midi.out.write_short(midi.MC_START)
-
+    for part in parts():
+        part.start()
 
 def stop():
     """Stop the sequencer."""
@@ -40,11 +41,12 @@ def stop():
     running_time = 0
     running = False
     new_step = False
-    for part in parts():
-        part.stop()
+
     if midiclock == MC_SEND:
         midi.out.write_short(midi.MC_STOP)
 
+    for part in parts():
+        part.stop()
 def toggle():
     """Starts/stops the sequencer."""
     stop() if running else start()
@@ -75,13 +77,13 @@ def update():
     global running_time, clock_time, new_step
     delta = clock.tick(100)
     bpm = project['bpm']
+
     if running:
         clock_time += delta * 0.001
         old_running_time = int(running_time)
         running_time = clock_time / ((60.0 / bpm) / 4.0)
         new_step = old_running_time != int(running_time)
-    for part in parts():
-        part.update()
+
     if midiclock == MC_SEND and midi.out:
         # 24 ppq
         ppq_length = (60.0 / bpm) / 24.0
@@ -93,6 +95,9 @@ def update():
             midi.out.write_short(midi.MC_CLOCK)
             update.next_ppq += ppq_length
     # TODO: Recieve MIDI clock
+
+    for part in parts():
+        part.update()
 
 update.deltasum = 0
 update.next_ppq = 0
@@ -135,6 +140,10 @@ class Part(object):
     def update(self):
         """Update the part and trigger new events. Check if part has looped."""
         global running_time, running
+
+        if not self._events:
+            return
+
         timestamp = running_time % self.length
         measure = running_time // self.length
 
