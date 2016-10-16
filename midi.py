@@ -18,8 +18,8 @@ MC_START = 0xFA
 MC_CONTINUE = 0xFB
 MC_STOP = 0xFC
 
-NOTES = {0:'C ', 1:'C#', 2:'D ', 3:'D#', 4:'E ', 5:'F ',
-         6:'F#', 7:'G ', 8:'G#', 9:'A ', 10:'A#', 11:'B '}
+NOTES = {0: 'C ', 1: 'C#', 2: 'D ', 3: 'D#', 4: 'E ', 5: 'F ',
+         6: 'F#', 7: 'G ', 8: 'G#', 9: 'A ', 10: 'A#', 11: 'B '}
 
 # Velocity
 PPP = 16
@@ -33,50 +33,60 @@ FFF = 127
 
 out = 0
 
-class MidiEvent:
-    def __init__(self, status, data1, data2, timestamp):
-        self.status = status
-        self.data1 = data1
-        self.data2 = data2
-        self.timestamp = timestamp
-        self.off = None  # note_on events has an off event too
-        
-    def transpose(self, value, channel=0):
-        """Transposes an event, sends note off for old note"""
-        # TODO: Need to note off here, old note keeps playing
-        if self.off:
-            self.off.data1 += value
-            out.write_short(self.status + channel, self.data1, 0)
-        self.data1 += value
 
-    def set_note(self, value, channel=0):
-        """Set data1 of an event, sends note off for old note"""
-        if self.off:
-            self.off.data1 = value
-            out.write_short(self.status + channel, self.data1, 0)
-        self.data1 = value
+# class MidiEvent:
+#     def __init__(self, status, data1, data2, timestamp):
+#         self.status = status
+#         self.data1 = data1
+#         self.data2 = data2
+#         self.timestamp = timestamp
+#         self.off = None  # note_on events has an off event too
 
-    def move(self, length):
-        self.timestamp += length
-        if self.off:
-            self.off.timestamp += length
+#     def transpose(self, value, channel=0):
+#         """Transposes an event, sends note off for old note"""
+#         # TODO: Need to note off here, old note keeps playing
+#         if self.off:
+#             self.off.data1 += value
+#             out.write_short(self.status + channel, self.data1, 0)
+#         self.data1 += value
 
-    def __str__(self):
-        return 'ts: %f, status: %i, data1: %i, data2: %i' % (self.timestamp,
-                                                             self.status,
-                                                             self.data1,
-                                                             self.data2)
+#     def set_note(self, value, channel=0):
+#         """Set data1 of an event, sends note off for old note"""
+#         if self.off:
+#             self.off.data1 = value
+#             out.write_short(self.status + channel, self.data1, 0)
+#         self.data1 = value
+
+#     def move(self, length):
+#         self.timestamp += length
+#         if self.off:
+#             self.off.timestamp += length
+
+#     def __str__(self):
+#         return 'ts: %f, status: %i, data1: %i, data2: %i' % (self.timestamp,
+#                                                              self.status,
+#                                                              self.data1,
+#                                                              self.data2)
+
+# def note(tone, velocity, timestamp, length):
+#     on = MidiEvent(NOTE_ON, tone, velocity, timestamp)
+#     off = MidiEvent(NOTE_ON, tone, 0, timestamp + length)
+#     on.off = off
+#     return [on, off]
+
 def outDevices():
-    """Returns a list of tuples: (device name, output device number)"""
+    """Return a list of tuples: (device name, output device number)"""
     return [(pm.get_device_info(device_id)[1], device_id)
             for device_id in range(pm.get_count())
-            if pm.get_device_info(device_id)[3]==1]
+            if pm.get_device_info(device_id)[3] == 1]
+
 
 def inDevices():
-    """Returns a list of tuples: (device name, input device number)"""
+    """Return a list of tuples: (device name, input device number)"""
     return [(pm.get_device_info(device_id)[1], device_id)
             for device_id in range(pm.get_count())
-            if pm.get_device_info(device_id)[2]==1]
+            if pm.get_device_info(device_id)[2] == 1]
+
 
 def sweep_cc(control, start, end, time, offset=0):
     step = -1
@@ -87,11 +97,6 @@ def sweep_cc(control, start, end, time, offset=0):
     return [[[CC, control, i],
              abs(i-start) * interval] for i in range(start, end, step)]
 
-def note(tone, velocity, timestamp, length):
-    on = MidiEvent(NOTE_ON, tone, velocity, timestamp)
-    off = MidiEvent(NOTE_ON, tone, 0, timestamp + length)
-    on.off = off
-    return [on, off]
 
 def note_to_string(note):
     octave = note // 12
@@ -99,6 +104,7 @@ def note_to_string(note):
     if octave == 10:
         return note + 'X'
     return note + str(octave)
+
 
 def set_out_device(name):
     global out
@@ -108,8 +114,9 @@ def set_out_device(name):
             return True
     return False
 
+
 def init():
-    """Initializes MIDI and returns False if we haven't set up a MIDI Out Device."""
+    """Initialize MIDI, return False if we haven't set up a MIDI Out Device."""
     pm.init()
     config_yaml = yaml.load(file('config.yml', 'r'))
     if not set_out_device(config_yaml['midi_out']):
@@ -117,10 +124,7 @@ def init():
         screen.stack.append(ChoiceList(devices, 'Out Device'))
         return False
     return True
-    # for od in outDevices():
-    #     if 'CME U2MIDI' == od[0]:
-    #         out = pm.Output(od[1])
-    #         return
+
 
 def close():
     out.close()

@@ -1,6 +1,8 @@
 import pygame
 import yaml
 
+from os import listdir
+from os.path import isfile, join
 from enum import IntEnum
 
 import sequencer
@@ -10,6 +12,8 @@ import midi
 
 from modeline import Modeline
 from clipsettings import ClipSettings
+from choicelist import ChoiceList
+from save_screen import SaveScreen
 
 PART_BOX_SIZE = 55
 
@@ -57,6 +61,9 @@ class SceneView(screen.Screen):
                                      len(sequencer.project['scenes']))
         self.modeline[ModelineSections.Scene] = scene
 
+    def save_as(self):
+        screen.stack.append(SaveScreen())
+
     def keydown_events(self, keyevents):
         """Handle pygame keydown events."""
         mods = pygame.key.get_mods()
@@ -64,7 +71,8 @@ class SceneView(screen.Screen):
             if mods & pygame.KMOD_SHIFT:
                 pass
             elif mods & pygame.KMOD_CTRL:
-                pass
+                if e.key == pygame.K_s:
+                    self.save_as()
             elif mods & pygame.KMOD_ALT:
                 pass
             else:
@@ -74,6 +82,17 @@ class SceneView(screen.Screen):
                     sequencer.toggle()
                 elif e.key == pygame.K_0:
                     self.goto_scene(9)
+                elif e.key == pygame.K_o:
+                    # Load file
+                    path = "projects/"
+                    files = [[f, f] for f in listdir(path) if isfile(join(path, f))]
+                    screen.stack.append(ChoiceList(files, 'Load project'))
+                elif e.key == pygame.K_s:
+                    path = sequencer.project['path']
+                    if path is None:
+                        self.save_as()
+                    else:
+                        sequencer.save(path)
                 else:
                     try:
                         scene = int(e.unicode.encode('utf-8'))
@@ -116,6 +135,8 @@ class SceneView(screen.Screen):
             data = {'midi_out': kwargs['out_device']}
             yaml.dump(data, stream)
             sequencer.start()
+        elif 'load_project' in kwargs:
+            sequencer.load('projects/' + kwargs['load_project'])
 
     def _render(self, surface):
         # Render part boxes

@@ -54,10 +54,8 @@ def toggle():
 def parts():
     return [clip.part for clip in project['scenes'][current_scene]]
 
-def save(path=None):
+def save(path):
     """The path is relative to the projects folder."""
-    if path is None:
-        path = project['path']
     with open(path, 'w') as f:
         yaml.dump(project, f)
 

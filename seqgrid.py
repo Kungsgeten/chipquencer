@@ -41,8 +41,8 @@ class SeqGrid(Screen):
 
     The main purpose is melodic content. The part may be split up into equally
     long measures. Often operation will be executed upon the selected steps in
-    the grid. Apart from the grid there's also a menu where the notes' velocity,
-    offset and length can be modified.
+    the grid. There's also a menu where the notes' velocity, offset and length
+    can be modified.
 
     """
     font = gui.FONT_MEDIUM
@@ -280,31 +280,24 @@ class SeqGrid(Screen):
                 if e.key in self.KEYBOARD_KEYS:
                     note = self.keyboard_root + self.KEYBOARD_KEYS[e.key]
                     self.keyboard_play(note)
-
                 # Octave down
                 elif e.key == pygame.K_TAB:
                     self.keyboard_root -= 12
-
                 # Octave up
                 elif e.key == pygame.K_RETURN:
                     self.keyboard_root += 12
-
                 # Semitone down
                 elif e.key == pygame.K_a:
                     self.keyboard_root -= 1
-
                 # Semitone up
                 elif e.key == pygame.K_l:
                     self.keyboard_root += 1
-
                 # Cycle keyboard mode
                 elif e.key == pygame.K_SLASH or e.key == pygame.K_t:
                     self.keyboard_mode_cycle()
-
                 # Next measure
                 elif e.key == pygame.K_p:
                     self.measure += 1
-
                 # Delete selected steps
                 elif e.key == pygame.K_y:
                     self.delete_selected()

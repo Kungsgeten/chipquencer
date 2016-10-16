@@ -52,7 +52,6 @@ while 1:
             sequencer.stop()
             midi.close()
             sys.exit()
-
     pygame.event.pump()
     sequencer.update()
 
