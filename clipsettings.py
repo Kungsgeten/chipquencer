@@ -57,14 +57,12 @@ class ClipSettings(screen.Screen):
                                         'Measures', 1, 256,
                                         measures)
 
-        self.editor_button = None
-        if self.new:
-            ypos += SPACE + BUTTON_HEIGHT
-            editor = clip.__name__ if clip else 'Editor'
-            self.editor_button = ActionButton((SPACE, ypos),
-                                              BUTTON_SIZE,
-                                              editor,
-                                              True, True)
+        ypos += SPACE + BUTTON_HEIGHT
+        editor = clip.__class__.__name__ if clip else 'Editor'
+        self.editor_button = ActionButton((SPACE, ypos),
+                                          BUTTON_SIZE,
+                                          editor,
+                                          True, True)
         self.editor_gui = clip.clipsettings_gui(clip) if clip else ()
 
     def _update(self, events):
@@ -72,7 +70,7 @@ class ClipSettings(screen.Screen):
         self.name_field.update(events)
         self.channel_counter.update(events)
         self.measures_counter.update(events)
-        if self.editor_button and self.editor_button.clicked(events):
+        if self.clip is None and self.editor_button.clicked(events):
             editors = [["SeqGrid", SeqGrid]]
             screen.stack.append(ChoiceList(editors, 'Editor'))
 
@@ -92,7 +90,7 @@ class ClipSettings(screen.Screen):
         self.name_field.render(surface)
         self.channel_counter.render(surface)
         self.measures_counter.render(surface)
-        if self.editor_button:
+        if self.clip is None:
             self.editor_button.render(surface)
 
         for widget in self.editor_gui:
@@ -104,6 +102,7 @@ class ClipSettings(screen.Screen):
         if 'editor' in kwargs:
             self.clip = kwargs['editor']
             self.editor_gui = self.clip.clipsettings_gui()
+            # self.editor_button.text = self.clip.__name__
 
     def close(self):
         if self.new:
@@ -112,3 +111,8 @@ class ClipSettings(screen.Screen):
                                                  self.measures_counter.value,
                                                  self.editor_gui)
             sequencer.project['scenes'][sequencer.current_scene].append(clip)
+        else:
+            self.clip.clipsettings_update(self.name_field.text,
+                                          self.channel_counter.value - 1,
+                                          self.measures_counter.value,
+                                          self.editor_gui)

@@ -135,6 +135,15 @@ class Part(object):
             self.stop()
         self._mute = value
 
+    @property
+    def length(self):
+        return self._length
+
+    @length.setter
+    def length(self, value):
+        self._events = [e for e in self._events if e.timestamp < value]
+        self._length = value
+
     def update(self):
         """Update the part and trigger new events. Check if part has looped."""
         global running_time, running

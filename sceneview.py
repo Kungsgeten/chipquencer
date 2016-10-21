@@ -101,6 +101,7 @@ class SceneView(screen.Screen):
                         pass
 
     def mousedown_events(self, mouseevents):
+        mods = pygame.key.get_mods()
         for e in mouseevents:
             x, y = e.pos
             for i, rect in enumerate(self.partrects):
@@ -113,6 +114,9 @@ class SceneView(screen.Screen):
                     # # Mute button
                     # elif self.modeline.buttons[1].down:
                     #     sequencer.parts()[i].mute = not sequencer.parts()[i].mute
+                    elif mods & pygame.KMOD_CTRL:
+                        clip = sequencer.project['scenes'][sequencer.current_scene][i]
+                        screen.stack.append(ClipSettings(clip))
                     else:
                         clip = sequencer.project['scenes'][sequencer.current_scene][i]
                         screen.stack.append(clip)

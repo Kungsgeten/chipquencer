@@ -161,6 +161,16 @@ class SeqGrid(Screen):
         part = sequencer.Part(name, measures * width * height, channel)
         return SeqGrid(part, width, height)
 
+    def clipsettings_update(self, name, channel, measures, widgets):
+        width_widget, height_widget = widgets
+        width = width_widget.value
+        height = height_widget.value
+        length = width * height * measures
+        self.part.name = name
+        self.part.channel = channel
+        self.part.length = length
+        self.set_grid(width, height)
+
     def set_grid(self, width, height):
         """Set the size of self.grid and populate it with rects."""
         assert(self.part.length % (width * height) == 0)
