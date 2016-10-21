@@ -65,9 +65,7 @@ class ClipSettings(screen.Screen):
                                               BUTTON_SIZE,
                                               editor,
                                               True, True)
-
         self.editor_gui = clip.clipsettings_gui(clip) if clip else ()
-        self.editor = None
 
     def _update(self, events):
         self.has_changed = True
@@ -104,13 +102,13 @@ class ClipSettings(screen.Screen):
 
     def focus(self, *args, **kwargs):
         if 'editor' in kwargs:
-            self.editor = kwargs['editor']
-            self.editor_gui = self.editor.clipsettings_gui()
+            self.clip = kwargs['editor']
+            self.editor_gui = self.clip.clipsettings_gui()
 
     def close(self):
         if self.new:
-            clip = self.editor.clipsettings_create(self.name_field.text,
-                                                   self.channel_counter.value - 1,
-                                                   self.measures_counter.value,
-                                                   self.editor_gui)
+            clip = self.clip.clipsettings_create(self.name_field.text,
+                                                 self.channel_counter.value - 1,
+                                                 self.measures_counter.value,
+                                                 self.editor_gui)
             sequencer.project['scenes'][sequencer.current_scene].append(clip)
