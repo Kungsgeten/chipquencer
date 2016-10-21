@@ -6,6 +6,7 @@ import sequencer
 
 from modeline import Modeline
 from seqgrid import SeqGrid
+from choicelist import ChoiceList
 from gui import ActionButton, TextField, Counter
 
 SPACE = 5
@@ -19,6 +20,13 @@ class ClipSettings(screen.Screen):
         self.clip = clip
         if clip is not None:
             self.new = False
+
+        # General settings
+        # - Instrument
+        # - Name
+        # - Channel
+        # - Editor
+        # - Measures
 
         BUTTON_SIZE = BUTTON_WIDTH, BUTTON_HEIGHT = (135, 27)
 
@@ -43,16 +51,35 @@ class ClipSettings(screen.Screen):
                                        channel)
 
         ypos += SPACE + BUTTON_HEIGHT
-        editor = clip.__name__ if clip else 'Editor'
-        self.editor_button = ActionButton((SPACE, ypos),
-                                          BUTTON_SIZE,
-                                          editor,
-                                          True, True)
+        measures = clip.measures if clip else 1
+        self.measures_counter = Counter((SPACE, ypos),
+                                        BUTTON_HEIGHT,
+                                        'Measures', 1, 256,
+                                        measures)
+
+        self.editor_button = None
+        if self.new:
+            ypos += SPACE + BUTTON_HEIGHT
+            editor = clip.__name__ if clip else 'Editor'
+            self.editor_button = ActionButton((SPACE, ypos),
+                                              BUTTON_SIZE,
+                                              editor,
+                                              True, True)
+
+        self.editor_gui = clip.clipsettings_gui(clip) if clip else ()
+        self.editor = None
 
     def _update(self, events):
         self.has_changed = True
         self.name_field.update(events)
         self.channel_counter.update(events)
+        self.measures_counter.update(events)
+        if self.editor_button and self.editor_button.clicked(events):
+            editors = [["SeqGrid", SeqGrid]]
+            screen.stack.append(ChoiceList(editors, 'Editor'))
+
+        for widget in self.editor_gui:
+            widget.update(events)
 
     def _render_button(self, surface, button, text):
         text = self.font.render(text, False, gui.C_DARKER)
@@ -66,12 +93,24 @@ class ClipSettings(screen.Screen):
         self.instrument_button.render(surface)
         self.name_field.render(surface)
         self.channel_counter.render(surface)
-        self.editor_button.render(surface)
+        self.measures_counter.render(surface)
+        if self.editor_button:
+            self.editor_button.render(surface)
+
+        for widget in self.editor_gui:
+            widget.render(surface)
+
         return surface
+
+    def focus(self, *args, **kwargs):
+        if 'editor' in kwargs:
+            self.editor = kwargs['editor']
+            self.editor_gui = self.editor.clipsettings_gui()
 
     def close(self):
         if self.new:
-            part = sequencer.Part(self.name_field.text, 16,
-                                  self.channel_counter.value - 1)
-            clip = SeqGrid(part, 4, 4)
+            clip = self.editor.clipsettings_create(self.name_field.text,
+                                                   self.channel_counter.value - 1,
+                                                   self.measures_counter.value,
+                                                   self.editor_gui)
             sequencer.project['scenes'][sequencer.current_scene].append(clip)

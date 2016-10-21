@@ -141,6 +141,26 @@ class SeqGrid(Screen):
                                           self.measures)
         self.modeline[ModelineSections.Measure] = measure_string
 
+    @staticmethod
+    def clipsettings_gui(seqgrid_instance=None):
+        width = 4
+        height = 4
+        if seqgrid_instance:
+            width = len(seqgrid_instance.grid)
+            height = len(seqgrid_instance.grid[0])
+        return (gui.Counter((300, 2), 30,
+                            'Width', 1, 16, width),
+                gui.Counter((300, 34), 30,
+                            'Height', 1, 16, height))
+
+    @staticmethod
+    def clipsettings_create(name, channel, measures, widgets):
+        width_widget, height_widget = widgets
+        width = width_widget.value
+        height = height_widget.value
+        part = sequencer.Part(name, measures * width * height, channel)
+        return SeqGrid(part, width, height)
+
     def set_grid(self, width, height):
         """Set the size of self.grid and populate it with rects."""
         assert(self.part.length % (width * height) == 0)

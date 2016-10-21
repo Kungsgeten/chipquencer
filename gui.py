@@ -40,10 +40,15 @@ class ActionButton:
         self.rect = pygame.Rect(x, y, width, height)
 
     def clicked(self, events):
+        """Return true if there's an event which clicked the button."""
         for e in events:
             if e.type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(e.pos):
                 return True
         return False
+
+    def update(self, events):
+        """Alias for clicked method."""
+        return self.clicked(events)
 
     def render(self, surface):
         pygame.draw.rect(surface, C_PRIMARY, self.rect)

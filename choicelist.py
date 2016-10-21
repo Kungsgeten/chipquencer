@@ -8,7 +8,7 @@ import pygame
 class ChoiceList(screen.Screen):
     SCROLL_WIDTH = 25
     ITEM_HEIGHT = 25
-    font = pygame.font.SysFont('Consolas', 16)
+    font = gui.FONT_BIG
 
     def __init__(self, choices, modelinetext=''):
         self.scrolling = False
@@ -31,7 +31,8 @@ class ChoiceList(screen.Screen):
                 text = self.font.render(choice[0], False, gui.C_DARKER)
             else:
                 text = self.font.render(choice, False, gui.C_DARKER)
-            self.listsurface.blit(text, (0, i * self.ITEM_HEIGHT))
+            # FIX: Pseudo centering
+            self.listsurface.blit(text, (4, i * self.ITEM_HEIGHT + 7))
 
     def _update(self, events):
         self.has_changed = True
