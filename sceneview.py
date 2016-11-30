@@ -1,5 +1,6 @@
 import pygame
 import yaml
+import copy
 
 from os import listdir
 from os.path import isfile, join
@@ -33,6 +34,7 @@ class ModelineSections(IntEnum):
 class SceneView(screen.Screen):
     pygame.font.init()
     font = gui.FONT_MEDIUM
+    clip_copy = None
 
     def __init__(self):
         self.partrects = []
@@ -93,6 +95,12 @@ class SceneView(screen.Screen):
                         self.save_as()
                     else:
                         sequencer.save(path)
+                elif e.key == pygame.K_p:
+                    # Paste
+                    if self.clip_copy is not None:
+                        scene = sequencer.project['scenes'][sequencer.current_scene]
+                        scene.append(self.clip_copy)
+                        self.update_partrects()
                 else:
                     try:
                         scene = int(e.unicode.encode('utf-8'))
@@ -101,26 +109,33 @@ class SceneView(screen.Screen):
                         pass
 
     def mousedown_events(self, mouseevents):
-        mods = pygame.key.get_mods()
+        scene = sequencer.project['scenes'][sequencer.current_scene]
         for e in mouseevents:
             x, y = e.pos
             for i, rect in enumerate(self.partrects):
                 if rect.collidepoint(e.pos):
+                    keys = pygame.key.get_pressed()
+                    clip = scene[i] if i < len(self.partrects) - 1 else None
                     if i == len(self.partrects) - 1:
                         screen.stack.append(ClipSettings())
-                    # Toggle
-                    # elif self.modeline.buttons[0].down:
-                    #     sequencer.parts()[i].toggle = True
-                    # # Mute button
-                    # elif self.modeline.buttons[1].down:
-                    #     sequencer.parts()[i].mute = not sequencer.parts()[i].mute
-                    elif mods & pygame.KMOD_CTRL:
-                        clip = sequencer.project['scenes'][sequencer.current_scene][i]
+                    elif keys[pygame.K_e]:
+                        # Edit clip
                         screen.stack.append(ClipSettings(clip))
+                    elif keys[pygame.K_d]:
+                        # Delete clip
+                        del scene[i]
+                        self.update_partrects()
+                    elif keys[pygame.K_c]:
+                        # Copy clip
+                        self.clip_copy = copy.deepcopy(clip)
+                    elif keys[pygame.K_t]:
+                        # Toggle clip
+                        clip.part.toggle = True
+                    elif keys[pygame.K_m]:
+                        # (un)Mute clip
+                        clip.part.mute = not clip.part.mute
                     else:
-                        clip = sequencer.project['scenes'][sequencer.current_scene][i]
                         screen.stack.append(clip)
-                        # screen.stack.append(screen.seqs[i])
                     return
 
     def _update(self, events):
@@ -132,6 +147,7 @@ class SceneView(screen.Screen):
 
     def focus(self, *args, **kwargs):
         self.update_partrects()
+        self.clip_copy = None
         # Update midi out device, see midi.py
         if 'out_device' in kwargs:
             midi.set_out_device(kwargs['out_device'])
