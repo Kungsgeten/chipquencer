@@ -5,7 +5,6 @@ import gui
 import sequencer
 
 from modeline import Modeline
-from seqgrid import SeqGrid
 from choicelist import ChoiceList
 from gui import ActionButton, TextField, Counter
 
@@ -44,7 +43,7 @@ class ClipSettings(screen.Screen):
                                     True, True)
 
         ypos += SPACE + BUTTON_HEIGHT
-        channel = clip.part.channel if clip else 1
+        channel = clip.part.channel + 1 if clip else 1
         self.channel_counter = Counter((SPACE, ypos),
                                        BUTTON_HEIGHT,
                                        'Channel', 1, 16,
@@ -71,6 +70,7 @@ class ClipSettings(screen.Screen):
         self.channel_counter.update(events)
         self.measures_counter.update(events)
         if self.clip is None and self.editor_button.clicked(events):
+            from seqgrid import SeqGrid
             editors = [["SeqGrid", SeqGrid]]
             screen.stack.append(ChoiceList(editors, 'Editor'))
 
@@ -105,6 +105,8 @@ class ClipSettings(screen.Screen):
             # self.editor_button.text = self.clip.__name__
 
     def close(self):
+        if self.clip is None:
+            return
         if self.new:
             clip = self.clip.clipsettings_create(self.name_field.text,
                                                  self.channel_counter.value - 1,

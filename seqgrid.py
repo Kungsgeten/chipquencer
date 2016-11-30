@@ -2,10 +2,11 @@ import midi
 import sequencer
 import gui
 import event
+import screen
 
 from gui import RadioButtons, Slider
 from modeline import Modeline
-from screen import Screen
+from clipsettings import ClipSettings
 
 import pygame
 import math
@@ -36,7 +37,7 @@ class ModelineSections(IntEnum):
     KeyboardMode = 2
 
 
-class SeqGrid(Screen):
+class SeqGrid(screen.Screen):
     """A sequencer screen representing a part as a grid.
 
     The main purpose is melodic content. The part may be split up into equally
@@ -170,6 +171,9 @@ class SeqGrid(Screen):
         self.part.channel = channel
         self.part.length = length
         self.set_grid(width, height)
+        self.selected = [Step(0, 0, -1)]
+        if self.measure >= self.measures:
+            self.measure = 0
 
     def set_grid(self, width, height):
         """Set the size of self.grid and populate it with rects."""
@@ -331,6 +335,9 @@ class SeqGrid(Screen):
                 # Delete selected steps
                 elif e.key == pygame.K_y:
                     self.delete_selected()
+                # Edit clip
+                elif e.key == pygame.K_e:
+                    screen.stack.append(ClipSettings(self))
 
     def keyup_events(self, keyevents):
         for e in keyevents:
