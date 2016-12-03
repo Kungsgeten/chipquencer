@@ -3,6 +3,7 @@ import pygame
 import screen
 import gui
 import sequencer
+import editors
 
 from modeline import Modeline
 from choicelist import ChoiceList
@@ -70,9 +71,7 @@ class ClipSettings(screen.Screen):
         self.channel_counter.update(events)
         self.measures_counter.update(events)
         if self.clip is None and self.editor_button.clicked(events):
-            from seqgrid import SeqGrid
-            editors = [["SeqGrid", SeqGrid]]
-            screen.stack.append(ChoiceList(editors, 'Editor'))
+            screen.stack.append(ChoiceList(editors.editors, 'Editor'))
 
         for widget in self.editor_gui:
             widget.update(events)

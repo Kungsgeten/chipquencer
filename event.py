@@ -59,6 +59,9 @@ def note_off(part, note):
 
 def note_on(part, note, velocity, length):
     midi.out.write_short(midi.NOTE_ON + part.channel, note, velocity)
+    # Remove future note off events with same pitch
+    part.future_events = [e for e in part.future_events
+                          if not (e.type() == 'note_off' and
+                                  e.note == note)]
     part.append_future(Event(sequencer.running_time + length,
-                             note_off,
-                             [note]))
+                             note_off, [note]))
