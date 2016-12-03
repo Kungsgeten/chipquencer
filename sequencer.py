@@ -1,11 +1,9 @@
 import midi
-import project
+# import project
 
 import pygame.time
 import bisect
 import yaml
-
-from threading import Thread
 
 MC_NONE = 0
 MC_SEND = 1
@@ -208,6 +206,14 @@ class Part(object):
         if type:
             return [e for e in self._events if e.type() == type]
         return self._events
+
+    def tranpose(self, semitones):
+        """Transpose all note properties of the parts events."""
+        for e in self._events:
+            try:
+                e.note += semitones
+            except:
+                pass
 
     def _sort(self):
         """Sort self._events. Calc self.element and self.next_timestamp."""

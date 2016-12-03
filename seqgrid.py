@@ -3,6 +3,7 @@ import sequencer
 import gui
 import event
 import screen
+import editors
 
 from gui import RadioButtons, Slider
 from modeline import Modeline
@@ -35,7 +36,6 @@ class ModelineSections(IntEnum):
     Measure = 0
     Root = 1
     KeyboardMode = 2
-
 
 class SeqGrid(screen.Screen):
     """A sequencer screen representing a part as a grid.
@@ -306,7 +306,10 @@ class SeqGrid(screen.Screen):
             if mods & pygame.KMOD_SHIFT:
                 pass
             elif mods & pygame.KMOD_CTRL:
-                pass
+                if e.key == pygame.K_PLUS:
+                    self.part.tranpose(1)
+                elif e.key == pygame.K_MINUS:
+                    self.part.tranpose(-1)
             elif mods & pygame.KMOD_ALT:
                 pass
             else:
@@ -338,6 +341,12 @@ class SeqGrid(screen.Screen):
                 # Edit clip
                 elif e.key == pygame.K_e:
                     screen.stack.append(ClipSettings(self))
+                elif e.key == pygame.K_PLUS:
+                    for e in self.selected_events('note_on'):
+                        e.note += 1
+                elif e.key == pygame.K_MINUS:
+                    for e in self.selected_events('note_on'):
+                        e.note -= 1
 
     def keyup_events(self, keyevents):
         for e in keyevents:
@@ -585,5 +594,6 @@ def seqgrid_constructor(loader, node):
     m = loader.construct_mapping(node)
     return SeqGrid(m['part'], m['width'], m['height'], m['root'], m['mode'])
 
+editors.editors.append(["Grid", SeqGrid])
 yaml.add_representer(SeqGrid, seqgrid_representer)
 yaml.add_constructor(u'!seqgrid', seqgrid_constructor)
