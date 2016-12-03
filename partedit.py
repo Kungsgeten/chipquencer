@@ -102,25 +102,6 @@ class PartEdit(screen.Screen):
             self.part.name = self.instrument_name
             # TODO: Load instrument data
 
-    # def _update_modeline(self, events):
-    #     self.modeline.update(events)
-    #     if self.modeline.buttons[0].pressed:
-    #         self.part.channel = 2
-    #         sequencer.parts.append(self.part)
-    #         self.part.start()
-    #         screen.seqs.append(seqgrid.SeqGrid(self.part))
-    #         screen.pop()
-    #         screen.stack[0].update_partrects()
-    #     elif self.modeline.buttons[1].pressed:
-    #         self.part.channel = 2
-    #         sequencer.parts.append(self.part)
-    #         self.part.start()
-    #         screen.seqs.append(seqdrum.SeqDrum(self.part))
-    #         screen.pop()
-    #         screen.stack[0].update_partrects()
-    #     elif self.modeline.buttons[3].pressed:
-    #         screen.pop()
-
     def _update_buttons(self, events):
         if self.instrument_button.clicked(events):
             instruments = [[name[0], i] for i, name in enumerate(settings.INSTRUMENTS)]

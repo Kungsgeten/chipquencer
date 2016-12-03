@@ -129,14 +129,18 @@ class Counter:
             self.value = minimum
 
     def update(self, events):
+        """Return True if clicked."""
         if self.dec.clicked(events):
             self.value -= 1
             if self.value < self.minimum:
                 self.value = self.maximum
+            return True
         elif self.inc.clicked(events):
             self.value += 1
             if self.value > self.maximum:
                 self.value = self.minimum
+            return True
+        return False
 
     def render(self, surface):
         self.dec.render(surface)

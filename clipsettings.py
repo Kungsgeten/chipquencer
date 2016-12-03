@@ -4,6 +4,7 @@ import screen
 import gui
 import sequencer
 import editors
+import midi
 
 from modeline import Modeline
 from choicelist import ChoiceList
@@ -25,6 +26,7 @@ class ClipSettings(screen.Screen):
         # - Instrument
         # - Name
         # - Channel
+        # - Program
         # - Editor
         # - Measures
 
@@ -51,6 +53,14 @@ class ClipSettings(screen.Screen):
                                        channel)
 
         ypos += SPACE + BUTTON_HEIGHT
+        program = clip.part.program if clip else 0
+        self.program_counter = Counter((SPACE, ypos),
+                                       BUTTON_HEIGHT,
+                                       'Program', 0, 128,
+                                       program)
+
+
+        ypos += SPACE + BUTTON_HEIGHT
         measures = clip.measures if clip else 1
         self.measures_counter = Counter((SPACE, ypos),
                                         BUTTON_HEIGHT,
@@ -69,6 +79,11 @@ class ClipSettings(screen.Screen):
         self.has_changed = True
         self.name_field.update(events)
         self.channel_counter.update(events)
+        if self.program_counter.update(events) and self.clip is not None:
+            part = self.clip.part
+            program = self.program_counter.value
+            if program > 0:
+                midi.out.write_short(midi.PC + part.channel, program)
         self.measures_counter.update(events)
         if self.clip is None and self.editor_button.clicked(events):
             screen.stack.append(ChoiceList(editors.editors, 'Editor'))
@@ -88,6 +103,7 @@ class ClipSettings(screen.Screen):
         self.instrument_button.render(surface)
         self.name_field.render(surface)
         self.channel_counter.render(surface)
+        self.program_counter.render(surface)
         self.measures_counter.render(surface)
         if self.clip is None:
             self.editor_button.render(surface)
@@ -111,9 +127,15 @@ class ClipSettings(screen.Screen):
                                                  self.channel_counter.value - 1,
                                                  self.measures_counter.value,
                                                  self.editor_gui)
+            program = self.program_counter.value
+            clip.part.program = program
+            if program > 0:
+                midi.out.write_short(midi.PC + self.channel_counter.value - 1,
+                                     program)
             sequencer.project['scenes'][sequencer.current_scene].append(clip)
         else:
             self.clip.clipsettings_update(self.name_field.text,
                                           self.channel_counter.value - 1,
                                           self.measures_counter.value,
                                           self.editor_gui)
+            self.clip.part.program = self.program_counter.value

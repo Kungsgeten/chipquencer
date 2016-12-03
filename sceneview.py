@@ -158,6 +158,7 @@ class SceneView(screen.Screen):
         elif 'load_project' in kwargs:
             sequencer.load('projects/' + kwargs['load_project'])
 
+
     def _render(self, surface):
         # Render part boxes
         for i, part in enumerate(sequencer.parts()):

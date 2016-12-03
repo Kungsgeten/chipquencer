@@ -101,7 +101,7 @@ update.next_ppq = 0
 
 # Timestamps are measured in 16ths
 class Part(object):
-    def __init__(self, name, length=16, channel=0, events=None):
+    def __init__(self, name, length=16, channel=0, program=0, events=None):
         if events is None:
             self._events = []
         else:
@@ -115,6 +115,7 @@ class Part(object):
         self.element = -1  # the last element checked
         self.finished = False  # the last event has triggered?
         self.channel = channel
+        self.program = program
         self.toggle = False
         self.last_measure = -1
 
@@ -183,6 +184,8 @@ class Part(object):
         self.finished = False
         self.last_measure = -1
         self.element = -1
+        if self.program > 0:
+            midi.out.write_short(midi.PC + self.channel, self.program)
         try:
             self.next_timestamp = self._events[0].timestamp
         except:
@@ -255,13 +258,17 @@ def part_representer(dumper, data):
     mapping = {'name': data.name,
                'length': data.length,
                'channel': data.channel,
+               'program': data.program,
                'events': data._events}
     return dumper.represent_mapping(u'!part', mapping)
 
 
 def part_constructor(loader, node):
     m = loader.construct_mapping(node)
-    return Part(m['name'], m['length'], m['channel'], m['events'])
+    print m
+    print node
+    print loader
+    return Part(m['name'], m['length'], m['channel'], m['program'], m['events'])
 
 yaml.add_representer(Part, part_representer)
 yaml.add_constructor(u'!part', part_constructor)

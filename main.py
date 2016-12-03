@@ -1,7 +1,7 @@
 import sequencer
 import midi
-import seqgrid
 import seqdrum
+import editors
 
 import settings
 import gui
@@ -31,15 +31,16 @@ def threadedConsole():
 
 settings.load_instruments()
 
-w, h = 4, 4
-melody = seqgrid.SeqGrid(sequencer.Part('Melody', w * h), w, h)
-sequencer.project['scenes'][sequencer.current_scene].append(melody)
+w, h = 4, 6
+# melody = seqgrid.SeqGrid(sequencer.Part('Melody', w * h * 3), w, h)
+# sequencer.project['scenes'][sequencer.current_scene].append(melody)
 
 screen.stack.append(sceneview.SceneView())
 if midi.init():
     sequencer.start()
 
 display = pygame.display.set_mode(gui.SCREEN_SIZE)
+editors.import_editor_classes()
 
 while 1:
     if not consoling:
