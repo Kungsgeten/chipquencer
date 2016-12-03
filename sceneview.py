@@ -146,7 +146,6 @@ class SceneView(screen.Screen):
                                if e.type == pygame.MOUSEBUTTONDOWN))
 
     def focus(self, *args, **kwargs):
-        self.update_partrects()
         self.clip_copy = None
         # Update midi out device, see midi.py
         if 'out_device' in kwargs:
@@ -157,6 +156,7 @@ class SceneView(screen.Screen):
             sequencer.start()
         elif 'load_project' in kwargs:
             sequencer.load('projects/' + kwargs['load_project'])
+        self.update_partrects()
 
 
     def _render(self, surface):

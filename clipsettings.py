@@ -79,7 +79,7 @@ class ClipSettings(screen.Screen):
         self.has_changed = True
         self.name_field.update(events)
         self.channel_counter.update(events)
-        if self.program_counter.update(events) and self.clip is not None:
+        if self.program_counter.update(events) and not self.new:
             part = self.clip.part
             program = self.program_counter.value
             if program > 0:

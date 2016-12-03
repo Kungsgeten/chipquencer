@@ -592,7 +592,6 @@ def seqgrid_representer(dumper, data):
 
 def seqgrid_constructor(loader, node):
     m = loader.construct_mapping(node)
-    print m
     return SeqGrid(m['part'], m['width'], m['height'], m['root'], m['mode'])
 
 editors.editors.append(["Grid", SeqGrid])

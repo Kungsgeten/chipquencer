@@ -140,7 +140,8 @@ class Part(object):
 
     @length.setter
     def length(self, value):
-        self._events = [e for e in self._events if e.timestamp < value]
+        if self._events:
+            self._events = [e for e in self._events if e.timestamp < value]
         self._length = value
 
     def update(self):
@@ -265,9 +266,6 @@ def part_representer(dumper, data):
 
 def part_constructor(loader, node):
     m = loader.construct_mapping(node)
-    print m
-    print node
-    print loader
     return Part(m['name'], m['length'], m['channel'], m['program'], m['events'])
 
 yaml.add_representer(Part, part_representer)
