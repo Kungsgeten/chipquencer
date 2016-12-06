@@ -303,44 +303,56 @@ class SeqGrid(screen.Screen):
         """Handle pygame keydown events."""
         mods = pygame.key.get_mods()
         for e in keyevents:
+            print e.key
             if mods & pygame.KMOD_SHIFT:
-                pass
+                # Transpose selected steps one octave
+                if e.key == pygame.K_PLUS:
+                    for e in self.selected_events('note_on'):
+                        e.note += 12
+                elif e.key == pygame.K_MINUS:
+                    for e in self.selected_events('note_on'):
+                        e.note -= 12
             elif mods & pygame.KMOD_CTRL:
+                pass
+            elif mods & pygame.KMOD_ALT:
+                # Transpose entire part one semitone
                 if e.key == pygame.K_PLUS:
                     self.part.tranpose(1)
                 elif e.key == pygame.K_MINUS:
                     self.part.tranpose(-1)
-            elif mods & pygame.KMOD_ALT:
-                pass
             else:
                 # Play keyboard
                 if e.key in self.KEYBOARD_KEYS:
                     note = self.keyboard_root + self.KEYBOARD_KEYS[e.key]
                     self.keyboard_play(note)
-                # Octave down
+                # KB Octave down
                 elif e.key == pygame.K_TAB:
                     self.keyboard_root -= 12
-                # Octave up
+                # KB Octave up
                 elif e.key == pygame.K_RETURN:
                     self.keyboard_root += 12
-                # Semitone down
+                # KB Semitone down
                 elif e.key == pygame.K_a:
                     self.keyboard_root -= 1
-                # Semitone up
+                # KB Semitone up
                 elif e.key == pygame.K_l:
                     self.keyboard_root += 1
                 # Cycle keyboard mode
                 elif e.key == pygame.K_SLASH or e.key == pygame.K_t:
                     self.keyboard_mode_cycle()
                 # Next measure
-                elif e.key == pygame.K_p:
+                elif e.key == pygame.K_DOWN:
                     self.measure += 1
+                # Previous measure
+                elif e.key == pygame.K_UP:
+                    self.measure -= 1
                 # Delete selected steps
                 elif e.key == pygame.K_y:
                     self.delete_selected()
                 # Edit clip
-                elif e.key == pygame.K_e:
+                elif e.key == pygame.K_o:
                     screen.stack.append(ClipSettings(self))
+                # Transpose selected steps one semitone
                 elif e.key == pygame.K_PLUS:
                     for e in self.selected_events('note_on'):
                         e.note += 1
@@ -464,6 +476,8 @@ class SeqGrid(screen.Screen):
         self.update_radio_buttons(events)
         self.update_slider_and_presets(events)
 
+        keys = pygame.key.get_pressed()
+
         for e in events:
             if e.type == pygame.MOUSEBUTTONDOWN:
                 step = self.step_at_pos(e.pos)
@@ -475,15 +489,20 @@ class SeqGrid(screen.Screen):
                     # Drag outside grid to delete
                     if step is None:
                         self.delete_step(*self.step_dragged)
+                    # Drag and e to set length end
+                    elif keys[pygame.K_e]:
+                        new_ts = self.step_timestamp(*step)
+                        for ev in self.step_events(*self.step_dragged):
+                            ev.length = new_ts + 1 - ev.timestamp
                     # Drag to another step to copy/replace
                     elif step != self.step_dragged:
                         new_ts = self.step_timestamp(*step)
                         self.delete_step(*step)
                         for ev in self.step_events(*self.step_dragged):
-                            event_copy = event.Event(new_ts + ev.timestamp % 1,
-                                                     ev.function,
-                                                     ev.params)
-                            self.part.append(event_copy)
+                            copy = event.Event(new_ts + ev.timestamp % 1,
+                                               ev.function,
+                                               ev.params)
+                            self.part.append(copy)
                 self.step_dragged = None
 
     def render_step_events(self, surface, x, y):
