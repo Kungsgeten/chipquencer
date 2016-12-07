@@ -23,6 +23,7 @@ project = {'name': 'Unnamed',
            'scenes': [[]]}
 current_scene = 0
 
+
 def start():
     """Start the sequencer."""
     global running
@@ -31,6 +32,7 @@ def start():
         midi.out.write_short(midi.MC_START)
     for part in parts():
         part.start()
+
 
 def stop():
     """Stop the sequencer."""
@@ -45,17 +47,22 @@ def stop():
 
     for part in parts():
         part.stop()
+
+
 def toggle():
     """Starts/stops the sequencer."""
     stop() if running else start()
 
+
 def parts():
     return [clip.part for clip in project['scenes'][current_scene]]
+
 
 def save(path):
     """The path is relative to the projects folder."""
     with open(path, 'w') as f:
         yaml.dump(project, f)
+
 
 def load(path):
     global project
@@ -71,7 +78,7 @@ def update():
     Should be run every frame if the sequencer has started.
     """
     global running_time, clock_time, new_step
-    delta = clock.tick(100)
+    delta = clock.tick()
     bpm = project['bpm']
 
     if running:
@@ -114,6 +121,7 @@ class Part(object):
         self.next_timestamp = 0
         self.element = -1  # the last element checked
         self.finished = False  # the last event has triggered?
+        self._channel = channel
         self.channel = channel
         self.program = program
         self.toggle = False
@@ -143,6 +151,15 @@ class Part(object):
         if self._events:
             self._events = [e for e in self._events if e.timestamp < value]
         self._length = value
+
+    @property
+    def channel(self):
+        return self._channel
+
+    @channel.setter
+    def channel(self, value):
+        self.stop()
+        self._channel = value
 
     def update(self):
         """Update the part and trigger new events. Check if part has looped."""
@@ -177,6 +194,9 @@ class Part(object):
     def stop(self):
         """When the part is stopped."""
         # Stop all notes
+        for e in self.future_events:
+            if e.type() == 'note_off':
+                e.call(self)
         midi.out.write_short(midi.CC + self.channel, 120, 127)
         self.future_events = []
 
