@@ -219,7 +219,7 @@ class SeqGrid(screen.Screen):
         self.step_dragged = (x, y)
         self.has_changed = True
         mods = pygame.key.get_mods()
-
+        keys = pygame.key.get_pressed()
         if(mods & pygame.KMOD_CTRL and
            (x, y) in [s.pos() for s in self.selected]):
             for i, step in enumerate(self.selected):
@@ -228,6 +228,11 @@ class SeqGrid(screen.Screen):
                     index = (step.index + 1) % len(events)
                     self.selected[i] = Step(x, y, index)
                     break
+        # Hold E and click step to set "end" (length)
+        elif keys[pygame.K_e] and len(self.selected) == 1:
+            new_ts = self.step_timestamp(x, y)
+            for e in self.selected_events('note_on'):
+                e.length = new_ts + 1 - e.timestamp
         else:
             if not mods & pygame.KMOD_SHIFT:
                 self.selected = []
@@ -303,7 +308,6 @@ class SeqGrid(screen.Screen):
         """Handle pygame keydown events."""
         mods = pygame.key.get_mods()
         for e in keyevents:
-            print e.key
             if mods & pygame.KMOD_SHIFT:
                 # Transpose selected steps one octave
                 if e.key == pygame.K_PLUS:
@@ -489,11 +493,6 @@ class SeqGrid(screen.Screen):
                     # Drag outside grid to delete
                     if step is None:
                         self.delete_step(*self.step_dragged)
-                    # Drag and e to set length end
-                    elif keys[pygame.K_e]:
-                        new_ts = self.step_timestamp(*step)
-                        for ev in self.step_events(*self.step_dragged):
-                            ev.length = new_ts + 1 - ev.timestamp
                     # Drag to another step to copy/replace
                     elif step != self.step_dragged:
                         new_ts = self.step_timestamp(*step)

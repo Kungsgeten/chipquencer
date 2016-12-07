@@ -262,7 +262,8 @@ class Part(object):
         """Trigger next/current event. Update self.element. Check if finished."""
         # trigger all events with the correct timestamp
         element_to_play = (self.element + 1) % len(self._events)
-        while self._events[element_to_play].timestamp == self.next_timestamp and not self.finished:
+        while(self._events[element_to_play].timestamp == self.next_timestamp
+              and not self.finished):
             if not self.mute:
                 event = self._events[element_to_play]
                 event.call(self)
@@ -286,7 +287,8 @@ def part_representer(dumper, data):
 
 def part_constructor(loader, node):
     m = loader.construct_mapping(node)
-    return Part(m['name'], m['length'], m['channel'], m['program'], m['events'])
+    return Part(m['name'], m['length'], m['channel'],
+                m['program'], m['events'])
 
 yaml.add_representer(Part, part_representer)
 yaml.add_constructor(u'!part', part_constructor)
