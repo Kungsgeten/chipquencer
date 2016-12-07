@@ -165,21 +165,8 @@ class Part(object):
         """Update the part and trigger new events. Check if part has looped."""
         global running_time, running
 
-        if not self._events:
-            return
-
         timestamp = running_time % self.length
         measure = running_time // self.length
-
-        # Part has looped?
-        if self.finished and measure != self.last_measure and self._events:
-            if self.toggle:
-                self.toggle = False
-                self.mute = not self.mute
-            self.finished = False
-
-        if running and not self.finished and timestamp >= self.next_timestamp:
-            self._trigger_event()
 
         # Check future events
         if running:
@@ -188,6 +175,19 @@ class Part(object):
                 event = self.future_events[0]
                 event.call(self)
                 self.future_events.pop(0)
+
+        if not self._events:
+            return
+
+        # Part has looped?
+        if self.finished and measure != self.last_measure:
+            if self.toggle:
+                self.toggle = False
+                self.mute = not self.mute
+            self.finished = False
+
+        if running and not self.finished and timestamp >= self.next_timestamp:
+            self._trigger_event()
 
         self.last_measure = measure
 
@@ -224,6 +224,7 @@ class Part(object):
     def delete(self, event):
         self._events.remove(event)
         self._sort()
+        print self.future_events
 
     def events(self, type=None):
         """Return all events of given type. All events if type==None."""
