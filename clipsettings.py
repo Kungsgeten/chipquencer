@@ -26,6 +26,7 @@ class ClipSettings(screen.Screen):
         # - Instrument
         # - Name
         # - Channel
+        # - Bank
         # - Program
         # - Editor
         # - Measures
@@ -51,6 +52,13 @@ class ClipSettings(screen.Screen):
                                        BUTTON_HEIGHT,
                                        'Channel', 1, 16,
                                        channel)
+
+        ypos += SPACE + BUTTON_HEIGHT
+        bank = clip.part.bank if clip else 0
+        self.bank_counter = Counter((SPACE, ypos),
+                                    BUTTON_HEIGHT,
+                                    'Bank', 0, 128,
+                                    bank)
 
         ypos += SPACE + BUTTON_HEIGHT
         program = clip.part.program if clip else 0
@@ -79,11 +87,16 @@ class ClipSettings(screen.Screen):
         self.has_changed = True
         self.name_field.update(events)
         self.channel_counter.update(events)
+        if self.bank_counter.update(events) and not self.new:
+            part = self.clip.part
+            bank = self.bank_counter.value
+            if bank > 0:
+                midi.out.write_short(midi.CC + part.channel, 32, bank - 1)
         if self.program_counter.update(events) and not self.new:
             part = self.clip.part
             program = self.program_counter.value
             if program > 0:
-                midi.out.write_short(midi.PC + part.channel, program)
+                midi.out.write_short(midi.PC + part.channel, program - 1)
         self.measures_counter.update(events)
         if self.clip is None and self.editor_button.clicked(events):
             screen.stack.append(ChoiceList(editors.editors, 'Editor'))
@@ -103,6 +116,7 @@ class ClipSettings(screen.Screen):
         self.instrument_button.render(surface)
         self.name_field.render(surface)
         self.channel_counter.render(surface)
+        self.bank_counter.render(surface)
         self.program_counter.render(surface)
         self.measures_counter.render(surface)
         if self.clip is None:
@@ -122,20 +136,26 @@ class ClipSettings(screen.Screen):
     def close(self):
         if self.clip is None:
             return
+
+        channel = self.channel_counter.value - 1
+        bank = self.bank_counter.value
+        program = self.program_counter.value
         if self.new:
             clip = self.clip.clipsettings_create(self.name_field.text,
-                                                 self.channel_counter.value - 1,
+                                                 channel,
                                                  self.measures_counter.value,
                                                  self.editor_gui)
-            program = self.program_counter.value
+            clip.part.bank = bank
             clip.part.program = program
+            if bank > 0:
+                midi.out.write_short(midi.CC + channel, 32, bank - 1)
             if program > 0:
-                midi.out.write_short(midi.PC + self.channel_counter.value - 1,
-                                     program)
+                midi.out.write_short(midi.PC + channel, program - 1)
             sequencer.project['scenes'][sequencer.current_scene].append(clip)
         else:
             self.clip.clipsettings_update(self.name_field.text,
-                                          self.channel_counter.value - 1,
+                                          channel,
                                           self.measures_counter.value,
                                           self.editor_gui)
-            self.clip.part.program = self.program_counter.value
+            self.clip.part.bank = bank
+            self.clip.part.program = program

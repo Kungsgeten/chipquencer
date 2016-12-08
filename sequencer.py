@@ -108,7 +108,7 @@ update.next_ppq = 0
 
 # Timestamps are measured in 16ths
 class Part(object):
-    def __init__(self, name, length=16, channel=0, program=0, events=None):
+    def __init__(self, name, length=16, channel=0, bank=0, program=0, events=None):
         if events is None:
             self._events = []
         else:
@@ -123,6 +123,7 @@ class Part(object):
         self.finished = False  # the last event has triggered?
         self._channel = channel
         self.channel = channel
+        self.bank = bank
         self.program = program
         self.toggle = False
         self.last_measure = -1
@@ -205,8 +206,10 @@ class Part(object):
         self.finished = False
         self.last_measure = -1
         self.element = -1
+        if self.bank > 0:
+            midi.out.write_short(midi.CC + self.channel, 32, self.bank - 1)
         if self.program > 0:
-            midi.out.write_short(midi.PC + self.channel, self.program)
+            midi.out.write_short(midi.PC + self.channel, self.program - 1)
         try:
             self.next_timestamp = self._events[0].timestamp
         except:
@@ -281,6 +284,7 @@ def part_representer(dumper, data):
     mapping = {'name': data.name,
                'length': data.length,
                'channel': data.channel,
+               'bank': data.bank,
                'program': data.program,
                'events': data._events}
     return dumper.represent_mapping(u'!part', mapping)
@@ -289,7 +293,7 @@ def part_representer(dumper, data):
 def part_constructor(loader, node):
     m = loader.construct_mapping(node)
     return Part(m['name'], m['length'], m['channel'],
-                m['program'], m['events'])
+                m['bank'], m['program'], m['events'])
 
 yaml.add_representer(Part, part_representer)
 yaml.add_constructor(u'!part', part_constructor)

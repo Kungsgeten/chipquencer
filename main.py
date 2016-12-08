@@ -31,10 +31,6 @@ def threadedConsole():
 
 settings.load_instruments()
 
-w, h = 4, 6
-# melody = seqgrid.SeqGrid(sequencer.Part('Melody', w * h * 3), w, h)
-# sequencer.project['scenes'][sequencer.current_scene].append(melody)
-
 screen.stack.append(sceneview.SceneView())
 if midi.init():
     sequencer.start()
