@@ -153,7 +153,7 @@ class ClipSettings(screen.Screen):
                 midi.out.write_short(midi.CC + channel, 32, bank - 1)
             if program > 0:
                 midi.out.write_short(midi.PC + channel, program - 1)
-            sequencer.project['scenes'][sequencer.current_scene].append(clip)
+            sequencer.scene().append(clip)
         else:
             self.clip.clipsettings_update(self.name_field.text,
                                           channel,

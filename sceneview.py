@@ -87,7 +87,8 @@ class SceneView(screen.Screen):
                 elif e.key == pygame.K_o:
                     # Load file
                     path = "projects/"
-                    files = [[f, f] for f in listdir(path) if isfile(join(path, f))]
+                    files = [[f, f] for f in listdir(path)
+                             if isfile(join(path, f))]
                     screen.stack.append(ChoiceList(files, 'Load project'))
                 elif e.key == pygame.K_s:
                     path = sequencer.project['path']
@@ -98,8 +99,7 @@ class SceneView(screen.Screen):
                 elif e.key == pygame.K_p:
                     # Paste
                     if self.clip_copy is not None:
-                        scene = sequencer.project['scenes'][sequencer.current_scene]
-                        scene.append(self.clip_copy)
+                        sequencer.scene().append(self.clip_copy)
                         self.update_partrects()
                 else:
                     try:
@@ -109,7 +109,7 @@ class SceneView(screen.Screen):
                         pass
 
     def mousedown_events(self, mouseevents):
-        scene = sequencer.project['scenes'][sequencer.current_scene]
+        scene = sequencer.scene()
         for e in mouseevents:
             x, y = e.pos
             for i, rect in enumerate(self.partrects):
@@ -159,7 +159,6 @@ class SceneView(screen.Screen):
             sequencer.load('projects/' + kwargs['load_project'])
         self.update_partrects()
 
-
     def _render(self, surface):
         # Render part boxes
         for i, part in enumerate(sequencer.parts()):
@@ -179,8 +178,10 @@ class SceneView(screen.Screen):
                              (played_x, rect.top),
                              (played_x, rect.bottom))
             if part.mute:
-                pygame.draw.line(surface, color, rect.topleft, rect.bottomright)
-                pygame.draw.line(surface, color, rect.topright, rect.bottomleft)
+                pygame.draw.line(surface, color,
+                                 rect.topleft, rect.bottomright)
+                pygame.draw.line(surface, color,
+                                 rect.topright, rect.bottomleft)
         # Add box
         rect = self.partrects[-1]
         color = gui.C_DARKER

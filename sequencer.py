@@ -24,6 +24,16 @@ project = {'name': 'Unnamed',
 current_scene = 0
 
 
+def scene(scene_nr=None):
+    """Get scene[scene_nr] from the project.
+
+    If scene_nr=None, get current scene.
+    """
+    if scene_nr is None:
+        scene_nr = current_scene
+    return project['scenes'][scene_nr]
+
+
 def start():
     """Start the sequencer."""
     global running
