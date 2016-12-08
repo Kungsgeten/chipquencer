@@ -110,7 +110,7 @@ class Counter:
     """
     font = FONT_BIG
 
-    def __init__(self, pos, height, text, minimum, maximum, start=None):
+    def __init__(self, pos, height, text, minimum, maximum, start=None, options=None):
         """If start is None it will be set to minimum."""
         self.pos = x, y = pos
         self.minimum = minimum
@@ -130,13 +130,22 @@ class Counter:
 
     def update(self, events):
         """Return True if clicked."""
+        mods = pygame.key.get_mods()
+        multiplier = 1
+        if mods & pygame.KMOD_SHIFT:
+            multiplier *= 5
+        if mods & pygame.KMOD_ALT:
+            multiplier *= 10
+        if mods & pygame.KMOD_CTRL:
+            multiplier *= 30
+
         if self.dec.clicked(events):
-            self.value -= 1
+            self.value -= multiplier
             if self.value < self.minimum:
                 self.value = self.maximum
             return True
         elif self.inc.clicked(events):
-            self.value += 1
+            self.value += multiplier
             if self.value > self.maximum:
                 self.value = self.minimum
             return True
