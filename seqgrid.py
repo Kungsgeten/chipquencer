@@ -407,7 +407,7 @@ class SeqGrid(screen.Screen):
         if self.radios.selected == Radio.Velocity:
             self.slider.set_value(self.last_vel, 127)
         elif self.radios.selected == Radio.Length:
-            self.slider.set_value(self.last_length, 16.)
+            self.slider.set_value(1.0, 1.0)
         elif self.radios.selected == Radio.Offset:
             self.slider.set_value(self.last_offset, 0.9999)
 
