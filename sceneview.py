@@ -123,6 +123,7 @@ class SceneView(screen.Screen):
                         screen.stack.append(ClipSettings(clip))
                     elif keys[pygame.K_d]:
                         # Delete clip
+                        clip.part.stop()
                         del scene[i]
                         self.update_partrects()
                     elif keys[pygame.K_c]:

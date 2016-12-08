@@ -90,8 +90,10 @@ class ClipSettings(screen.Screen):
         if self.bank_counter.update(events) and not self.new:
             part = self.clip.part
             bank = self.bank_counter.value
-            if bank > 0:
+            program = self.program_counter.value
+            if bank > 0 and program > 0:
                 midi.out.write_short(midi.CC + part.channel, 32, bank - 1)
+                midi.out.write_short(midi.PC + part.channel, program - 1)
         if self.program_counter.update(events) and not self.new:
             part = self.clip.part
             program = self.program_counter.value
