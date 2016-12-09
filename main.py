@@ -1,8 +1,6 @@
 import sequencer
 import midi
-import seqdrum
 import editors
-
 import settings
 import gui
 import screen
@@ -10,38 +8,15 @@ import sceneview
 
 import sys
 import pygame
-import thread
-import yaml
 
-consoling = False
-
-
-def threadedConsole():
-    global consoling
-    consoling = True
-    read = raw_input(">>> ")
-    try:
-        print eval(read)
-    except:
-        try:
-            exec(read)
-        except Exception as error:
-            print error
-    consoling = False
-
+editors.import_editor_classes()
 settings.load_instruments()
-
 screen.stack.append(sceneview.SceneView())
+display = pygame.display.set_mode(gui.SCREEN_SIZE)
 if midi.init():
     sequencer.start()
 
-display = pygame.display.set_mode(gui.SCREEN_SIZE)
-editors.import_editor_classes()
-
 while 1:
-    if not consoling:
-        thread.start_new_thread(threadedConsole, ())
-
     events = pygame.event.get()
     screen.stack[-1].update(events)
     for e in events:

@@ -101,10 +101,7 @@ def update():
         # 24 ppq
         ppq_length = (60.0 / bpm) / 24.0
         update.deltasum += delta * 0.001
-        if update.next_ppq == 0:
-            midi.out.write_short(midi.MC_CLOCK)
-            update.next_ppq = update.deltasum + ppq_length
-        elif update.deltasum >= update.next_ppq:
+        if update.deltasum >= update.next_ppq:
             midi.out.write_short(midi.MC_CLOCK)
             update.next_ppq += ppq_length
     # TODO: Recieve MIDI clock
@@ -118,7 +115,8 @@ update.next_ppq = 0
 
 # Timestamps are measured in 16ths
 class Part(object):
-    def __init__(self, name, length=16, channel=0, bank=0, program=0, events=None):
+    def __init__(self, name, length=16, channel=0,
+                 bank=0, program=0, events=None):
         if events is None:
             self._events = []
         else:
@@ -273,7 +271,7 @@ class Part(object):
             self.finished = True
 
     def _trigger_event(self):
-        """Trigger next/current event. Update self.element. Check if finished."""
+        """Trigger event(s). Update self.element. Check if finished."""
         # trigger all events with the correct timestamp
         element_to_play = (self.element + 1) % len(self._events)
         while(self._events[element_to_play].timestamp == self.next_timestamp
