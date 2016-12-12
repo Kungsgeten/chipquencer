@@ -1,4 +1,7 @@
 import pygame
+import yaml
+
+from glob import glob
 
 import screen
 import gui
@@ -11,6 +14,8 @@ from choicelist import ChoiceList
 from gui import ActionButton, TextField, Counter
 
 SPACE = 5
+instruments = [[yaml.load(file(f, 'r'))['name'], f]
+               for f in glob('instruments/*.yml')]
 
 
 class ClipSettings(screen.Screen):
@@ -81,12 +86,13 @@ class ClipSettings(screen.Screen):
                                           BUTTON_SIZE,
                                           editor,
                                           True, True)
-        self.editor_gui = clip.clipsettings_gui(clip) if clip else ()
+        self.editor_gui = clip.clipsettings_gui(instance=clip) if clip else ()
 
     def _update(self, events):
         self.has_changed = True
         self.name_field.update(events)
         self.channel_counter.update(events)
+        self.measures_counter.update(events)
         if self.bank_counter.update(events) and not self.new:
             part = self.clip.part
             bank = self.bank_counter.value
@@ -99,9 +105,10 @@ class ClipSettings(screen.Screen):
             program = self.program_counter.value
             if program > 0:
                 midi.out.write_short(midi.PC + part.channel, program - 1)
-        self.measures_counter.update(events)
         if self.clip is None and self.editor_button.clicked(events):
             screen.stack.append(ChoiceList(editors.editors, 'Editor'))
+        if self.clip is None and self.instrument_button.clicked(events):
+            screen.stack.append(ChoiceList(instruments, 'Instrument'))
 
         for widget in self.editor_gui:
             widget.update(events)
@@ -129,11 +136,36 @@ class ClipSettings(screen.Screen):
 
         return surface
 
+    def load_editor(self, editor_cls):
+        """Set the editor class and load clipsettings_gui."""
+        self.clip = editor_cls
+        self.editor_gui = self.clip.clipsettings_gui()
+
+    def load_instrument(self, instrument_file):
+        """Load clip settings from instrument_file."""
+        inst_dict = yaml.load(file(instrument_file, 'r'))
+        for key, value in inst_dict.iteritems():
+            if key == 'name' and self.name_field.text == 'Unnamed':
+                self.name_field.text = value
+            elif key == 'channel':
+                self.channel_counter.value = value
+            elif key == 'program':
+                self.program_counter.value = value
+            elif key == 'bank':
+                self.bank_counter.value = value
+            elif key == 'measures':
+                self.measures_counter.value = value
+            elif key == 'editor':
+                editor_cls = dict(editors.editors)[value['type']]
+                self.clip = editor_cls
+                self.editor_gui = editor_cls.clipsettings_gui(yaml=value)
+
     def focus(self, *args, **kwargs):
-        if 'editor' in kwargs:
-            self.clip = kwargs['editor']
-            self.editor_gui = self.clip.clipsettings_gui()
-            # self.editor_button.text = self.clip.__name__
+        for key, value in kwargs.iteritems():
+            if key == 'editor':
+                self.load_editor(value)
+            elif key == 'instrument':
+                self.load_instrument(value)
 
     def close(self):
         if self.clip is None:

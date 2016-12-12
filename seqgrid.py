@@ -143,12 +143,18 @@ class SeqGrid(screen.Screen):
         self.modeline[ModelineSections.Measure] = measure_string
 
     @staticmethod
-    def clipsettings_gui(seqgrid_instance=None):
+    def clipsettings_gui(instance=None, yaml=None):
         width = 4
         height = 4
-        if seqgrid_instance:
-            width = len(seqgrid_instance.grid)
-            height = len(seqgrid_instance.grid[0])
+        if instance is not None:
+            width = len(instance.grid)
+            height = len(instance.grid[0])
+        if yaml is not None:
+            for key, value in yaml.iteritems():
+                if key == 'width':
+                    width = value
+                elif key == 'height':
+                    height = value
         return (gui.Counter((300, 2), 30,
                             'Width', 1, 16, width),
                 gui.Counter((300, 34), 30,

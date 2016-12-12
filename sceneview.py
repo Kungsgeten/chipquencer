@@ -1,9 +1,8 @@
 import pygame
 import yaml
 import copy
+from glob import glob
 
-from os import listdir
-from os.path import isfile, join
 from enum import IntEnum
 
 import sequencer
@@ -86,9 +85,8 @@ class SceneView(screen.Screen):
                     self.goto_scene(9)
                 elif e.key == pygame.K_o:
                     # Load file
-                    path = "projects/"
-                    files = [[f, f] for f in listdir(path)
-                             if isfile(join(path, f))]
+                    files = [[f[len("projects/"):], f]
+                             for f in glob('projects/*.yaml')]
                     screen.stack.append(ChoiceList(files, 'Load project'))
                 elif e.key == pygame.K_s:
                     path = sequencer.project['path']
@@ -156,7 +154,7 @@ class SceneView(screen.Screen):
             yaml.dump(data, stream)
             sequencer.start()
         elif 'load_project' in kwargs:
-            sequencer.load('projects/' + kwargs['load_project'])
+            sequencer.load(kwargs['load_project'])
         self.update_partrects()
 
     def _render(self, surface):
