@@ -116,11 +116,15 @@ update.next_ppq = 0
 # Timestamps are measured in 16ths
 class Part(object):
     def __init__(self, name, length=16, channel=0,
-                 bank=0, program=0, events=None):
+                 bank=0, program=0, cc=None, events=None):
         if events is None:
             self._events = []
         else:
             self._events = events  # events in the loop, sorted by timestamp
+        if cc is None:
+            self.cc = [(i, '') for i in range(120)]
+        else:
+            self.cc = cc
         self.length = length  # in 16th notes
         self.name = name
 
@@ -294,6 +298,7 @@ def part_representer(dumper, data):
                'channel': data.channel,
                'bank': data.bank,
                'program': data.program,
+               'cc': data.cc,
                'events': data._events}
     return dumper.represent_mapping(u'!part', mapping)
 
@@ -301,7 +306,8 @@ def part_representer(dumper, data):
 def part_constructor(loader, node):
     m = loader.construct_mapping(node)
     return Part(m['name'], m['length'], m['channel'],
-                m['bank'], m['program'], m['events'])
+                m['bank'], m['program'], m['cc'],
+                m['events'])
 
 yaml.add_representer(Part, part_representer)
 yaml.add_constructor(u'!part', part_constructor)

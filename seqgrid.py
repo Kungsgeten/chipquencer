@@ -23,7 +23,7 @@ Step.pos = lambda self: (self.x, self.y)
 class Radio(IntEnum):
     Velocity = 0
     Length = 1
-    Offset = 2
+    CC = 2
 
 
 class KeyboardMode(IntEnum):
@@ -36,6 +36,7 @@ class ModelineSections(IntEnum):
     Measure = 0
     Root = 1
     KeyboardMode = 2
+
 
 class SeqGrid(screen.Screen):
     """A sequencer screen representing a part as a grid.
@@ -95,7 +96,7 @@ class SeqGrid(screen.Screen):
         ITEM_SIZE = self.MENU_WIDTH / 3 - SPACE
 
         # Radio buttons
-        strings = 'Vel', 'Len', 'Off'
+        strings = 'Vel', 'Len', 'CC'
         self.radios = RadioButtons((self.GRID_WIDTH, SPACE),
                                    (ITEM_SIZE, ITEM_SIZE),
                                    3, 1, strings, SPACE)
@@ -105,14 +106,21 @@ class SeqGrid(screen.Screen):
                                           2, 3, [], SPACE)
 
         # Slider
-        SLIDER_HEIGHT = gui.SCREEN_HEIGHT - ITEM_SIZE - SPACE * 3 - Modeline.HEIGHT
+        SLIDER_H = gui.SCREEN_HEIGHT - ITEM_SIZE - SPACE * 3 - Modeline.HEIGHT
         self.slider = Slider(pygame.Rect(gui.SCREEN_WIDTH - ITEM_SIZE - SPACE - 1,
                                          ITEM_SIZE + SPACE * 2,
-                                         ITEM_SIZE, SLIDER_HEIGHT))
+                                         ITEM_SIZE, SLIDER_H))
+
+        # CC list
+        cc_strings = [str(cc) + ' ' + name for cc, name in part.cc]
+        self.cc_list = gui.ScrollList((self.GRID_WIDTH,
+                                       ITEM_SIZE + SPACE * 2),
+                                      (ITEM_SIZE * 2 + SPACE, SLIDER_H),
+                                      ITEM_SIZE, cc_strings, SPACE)
 
         self.last_vel = 120
         self.last_length = 1.0
-        self.last_offset = 0.0
+        self.last_cc = 0.0
 
         self.measure = 0
 
@@ -275,7 +283,7 @@ class SeqGrid(screen.Screen):
 
     def new_note_at_step(self, note, x, y):
         ts = self.step_timestamp(x, y)
-        note_event = event.Event(ts + self.last_offset,
+        note_event = event.Event(ts,
                                  event.note_on,
                                  [note, self.last_vel, self.last_length])
         self.part.append(note_event)
@@ -306,7 +314,7 @@ class SeqGrid(screen.Screen):
                 return
 
             ts = int(round(sequencer.running_time)) % self.part.length
-            note_event = event.Event(ts + self.last_offset,
+            note_event = event.Event(ts,
                                      event.note_on,
                                      [note, self.last_vel, self.last_length])
             self.part.append(note_event)
@@ -390,9 +398,14 @@ class SeqGrid(screen.Screen):
         """Update shown slider data."""
         self.has_changed = True
         if step is not None:
-            for i, e in enumerate(self.step_events(step.x, step.y)):
-                if e.type() != 'note_on' or (step.index >= 0 and
-                                             i != step.index):
+            if self.radios.selected == Radio.CC:
+                for i, e in enumerate(self.step_events(step.x, step.y, 'cc')):
+                    if step.index >= 0 and i != step.index:
+                        self.slider.set_value(e.data, 127)
+                        return
+                return
+            for i, e in enumerate(self.step_events(step.x, step.y, 'note_on')):
+                if step.index >= 0 and i != step.index:
                     continue
                 if self.radios.selected == Radio.Velocity:
                     self.slider.set_value(e.velocity, 127)
@@ -404,18 +417,14 @@ class SeqGrid(screen.Screen):
                         length_offset = 1.0
                     self.slider.set_value(length_offset, 1.0)
                     return
-                if self.radios.selected == Radio.Offset:
-                    self.slider.set_value(e.timestamp % 1.0, 0.999)
-                    self.last_offset = e.timestamp % 1.0
-                    return
             return
 
         if self.radios.selected == Radio.Velocity:
             self.slider.set_value(self.last_vel, 127)
         elif self.radios.selected == Radio.Length:
             self.slider.set_value(1.0, 1.0)
-        elif self.radios.selected == Radio.Offset:
-            self.slider.set_value(self.last_offset, 0.9999)
+        elif self.radios.selected == Radio.CC:
+            self.slider.set_value(self.last_cc, 127)
 
     def update_radio_buttons(self, events):
         """Handle events related to self.radios."""
@@ -434,33 +443,51 @@ class SeqGrid(screen.Screen):
     def update_slider_and_presets(self, events):
         """Handle events related to self.slider and self.preset_radios."""
         presetclick = None
-        presetclick = self.preset_radios.update(events)
-        if presetclick is not None:
-            if self.radios.selected == Radio.Velocity:
-                self.slider.set_value(self.VEL_PRESETS[presetclick], 127)
-            elif self.radios.selected == Radio.Length:
-                for e in self.selected_events('note_on'):
-                    # Dotted
-                    if presetclick == 5:
-                        e.length *= 1.5
-                    else:
-                        e.length = self.LEN_PRESETS[presetclick]
-                    self.last_length = e.length
-                return
-            elif self.radios.selected == Radio.Offset:
-                self.slider.set_value((presetclick / 6.) * 0.999, 0.999)
+        cc_clicked = None
+        if self.radios.selected == Radio.CC:
+            cc_clicked = self.cc_list.update(events)
+        else:
+            presetclick = self.preset_radios.update(events)
+            if presetclick is not None:
+                if self.radios.selected == Radio.Velocity:
+                    self.slider.set_value(self.VEL_PRESETS[presetclick], 127)
+                elif self.radios.selected == Radio.Length:
+                    for e in self.selected_events('note_on'):
+                        # Dotted
+                        if presetclick == 5:
+                            e.length *= 1.5
+                        else:
+                            e.length = self.LEN_PRESETS[presetclick]
+                        self.last_length = e.length
+                    return
 
         slided = self.slider.update(events)
-        if slided is not None or presetclick is not None:
+        if slided is not None or presetclick is not None or cc_clicked is not None:
             self.has_changed = True
+
+            if self.radios.selected == Radio.CC:
+                cc_val = int(127 * self.slider.get_data())
+                self.last_cc = cc_val
+                # cc_events = self.selected_events('cc')
+                cc_number = self.part.cc[self.cc_list.selected][0]
+                if slided:
+                    # New CC events
+                    for step in self.selected:
+                        for e in self.step_events(step.x, step.y, 'cc'):
+                            if e.cc == cc_number:
+                                e.data = cc_val
+                                break
+                        else:
+                            ts = self.step_timestamp(step.x, step.y)
+                            new_cc_event = event.Event(ts, event.cc,
+                                                       [cc_number, cc_val])
+                            self.part.append(new_cc_event)
+                return
+
             vel = int(self.slider.get_data() * 126) + 1
             length_offset = self.slider.get_data() * 1.0
-            offset = 0.999 * self.slider.get_data()
-
             if self.radios.selected == Radio.Velocity:
                 self.last_vel = vel
-            elif self.radios.selected == Radio.Offset:
-                self.last_offset = offset
 
             for e in self.selected_events('note_on'):
                 if self.radios.selected == Radio.Velocity:
@@ -471,19 +498,6 @@ class SeqGrid(screen.Screen):
                         subtract = 1
                     e.length = math.floor(e.length) + length_offset - subtract
                     self.last_length = e.length
-                elif(self.radios.selected == Radio.Offset and
-                     pygame.MOUSEBUTTONUP in [pye.type for pye in events]):
-                    e.timestamp = math.floor(e.timestamp) + offset
-                    self.part._sort()
-                    # Make sure same event is selected after sort
-                    for selected_element, step in enumerate(self.selected):
-                        if step.index >= 0:
-                            for i, se in enumerate(self.step_events(step.x,
-                                                                    step.y)):
-                                if e == se:
-                                    new_step = Step(step.x, step.y, i)
-                                    self.selected[selected_element] = new_step
-                                    break
 
     def _update(self, events):
         self.has_changed = sequencer.new_step
@@ -494,7 +508,7 @@ class SeqGrid(screen.Screen):
         self.update_radio_buttons(events)
         self.update_slider_and_presets(events)
 
-        keys = pygame.key.get_pressed()
+        # keys = pygame.key.get_pressed()
 
         for e in events:
             if e.type == pygame.MOUSEBUTTONDOWN:
@@ -522,8 +536,11 @@ class SeqGrid(screen.Screen):
         xpos, ypos = self.grid[x][y].topleft
         for i, e in enumerate(self.step_events(x, y)):
             string = '???'
-            if e.type() == 'note_on':
+            event_type = e.type()
+            if event_type == 'note_on':
                 string = midi.note_to_string(e.note)
+            elif event_type == 'cc':
+                string = '{}={}'.format(e.cc, e.data)
             color = gui.C_DARKEST
             if (x, y) in [step.pos() for step in self.selected
                           if step.index < 0 or step.index == i]:
@@ -563,11 +580,11 @@ class SeqGrid(screen.Screen):
                                           pixel_length, step_height / 2)
                     pygame.draw.rect(surface, gui.C_DARKER, lenrect, False)
 
-            elif self.radios.selected == Radio.Offset:
-                xpos += self.slider.get_data() * step_width
-                pygame.draw.line(surface, gui.C_DARKER,
-                                 (xpos, ypos),
-                                 (xpos, ypos + step_height))
+            # elif self.radios.selected == Radio.Offset:
+            #     xpos += self.slider.get_data() * step_width
+            #     pygame.draw.line(surface, gui.C_DARKER,
+            #                      (xpos, ypos),
+            #                      (xpos, ypos + step_height))
 
             elif self.radios.selected == Radio.Velocity:
                 xpos += step_width * 0.25
@@ -606,7 +623,10 @@ class SeqGrid(screen.Screen):
             for y in range(rows):
                 self.render_step_events(surface, x, y)
 
-        self.preset_radios.render(surface)
+        if self.radios.selected == Radio.CC:
+            self.cc_list.render(surface)
+        else:
+            self.preset_radios.render(surface)
         self.radios.render(surface)
         self.slider.render(surface)
         self.modeline.render(surface)

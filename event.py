@@ -17,8 +17,8 @@ class Event(object):
 
     def __repr__(self):
         return 'Event({}, {}, {})'.format(self.timestamp,
-                                             self.type(),
-                                             self.params)
+                                          self.type(),
+                                          self.params)
 
     def __getattr__(self, name):
         # Checks if attribute is in self.params
@@ -65,3 +65,7 @@ def note_on(part, note, velocity, length):
                                   e.note == note)]
     part.append_future(Event(sequencer.running_time + length,
                              note_off, [note]))
+
+
+def cc(part, cc, data):
+    midi.out.write_short(midi.CC + part.channel, cc, data)

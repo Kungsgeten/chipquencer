@@ -163,12 +163,74 @@ class Counter:
 
         surface.blit(self.text, (self.pos[0], y))
 
+class ScrollList(object):
+    """Similar to a scrollable list of radio buttons."""
+    font = FONT_BIG
+
+    def __init__(self, pos, size, item_height, strings, spacing=0):
+        self.clicked = None
+        self.item_height = item_height
+        self.spacing = spacing
+        self.pos = pos
+        self.surface = pygame.surface.Surface(size)
+        self.selected = 0
+        self.strings = strings
+        self.area = pygame.Rect(pos, size)
+
+    @property
+    def strings(self):
+        return self._strings
+
+    @strings.setter
+    def strings(self, value):
+        self._strings = value
+        self.rects = [pygame.Rect(0, i * (self.item_height + self.spacing),
+                                  self.surface.get_width(), self.item_height)
+                      for i in range(len(value))]
+
+    def update(self, events):
+        if self.clicked is not None:
+            relx, rely = pygame.mouse.get_rel()
+            for rect in self.rects:
+                rect.move_ip(0, rely)
+
+        for e in events:
+            if e.type == pygame.MOUSEBUTTONDOWN and self.area.collidepoint(e.pos):
+                self.clicked = e.pos
+                pygame.mouse.get_rel()
+            if e.type == pygame.MOUSEBUTTONUP and self.clicked is not None:
+                old_x, old_y = self.clicked
+                new_x, new_y = e.pos
+                self.clicked = None
+                if abs(new_y - old_y) < 5:
+                    click_pos = e.pos[0] - self.area.x, e.pos[1] - self.area.y
+                    for i, rect in enumerate(self.rects):
+                        if rect.collidepoint(click_pos):
+                            self.selected = i
+                            return self.selected
+        return None
+
+    def render(self, surface):
+        self.surface.fill(C_LIGHTER)
+        for i, (rect, string) in enumerate(zip(self.rects, self.strings)):
+            font_color = C_LIGHTEST
+            button_color = C_PRIMARY
+            if i == self.selected:
+                font_color = C_LIGHTEST
+                button_color = C_DARKER
+            pygame.draw.rect(self.surface, button_color, rect)
+            text = self.font.render(string, False, font_color)
+            self.surface.blit(text, (rect.x, rect.y))
+        surface.blit(self.surface, self.pos)
+
 class RadioButtons:
     """A set of radio buttons, can get the active index by RadioButtons.selected."""
 
     font = FONT_BIG
 
-    def __init__(self, pos, size, columns, rows, strings=[], spacing=0):
+    def __init__(self, pos, size, columns, rows, strings=None, spacing=0):
+        if strings is None:
+            strings = []
         if len(strings):
             assert len(strings) == columns * rows
         self.strings = strings
