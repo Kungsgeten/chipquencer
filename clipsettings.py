@@ -22,6 +22,7 @@ class ClipSettings(screen.Screen):
     font = gui.FONT_BIG
 
     def __init__(self, clip=None):
+        self.cc = None
         self.new = True
         self.clip = clip
         if clip is not None:
@@ -159,6 +160,8 @@ class ClipSettings(screen.Screen):
                 editor_cls = dict(editors.editors)[value['type']]
                 self.clip = editor_cls
                 self.editor_gui = editor_cls.clipsettings_gui(yaml=value)
+            elif key == 'cc':
+                self.cc = value
 
     def focus(self, *args, **kwargs):
         for key, value in kwargs.iteritems():
@@ -181,6 +184,8 @@ class ClipSettings(screen.Screen):
                                                  self.editor_gui)
             clip.part.bank = bank
             clip.part.program = program
+            if self.cc is not None:
+                clip.part.cc = self.cc
             if bank > 0:
                 midi.out.write_short(midi.CC + channel, 32, bank - 1)
             if program > 0:

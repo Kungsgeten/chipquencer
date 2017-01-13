@@ -124,6 +124,7 @@ class Part(object):
         if cc is None:
             self.cc = [(i, '') for i in range(120)]
         else:
+            print cc
             self.cc = cc
         self.length = length  # in 16th notes
         self.name = name

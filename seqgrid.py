@@ -279,7 +279,8 @@ class SeqGrid(screen.Screen):
                 self.delete_step(x, y, type='note_on')
                 continue
             events = self.step_events(x, y)
-            self.part.delete(events[index])
+            if len(events):
+                self.part.delete(events[index])
 
     def new_note_at_step(self, note, x, y):
         ts = self.step_timestamp(x, y)
@@ -437,6 +438,9 @@ class SeqGrid(screen.Screen):
                 strings = 'pp', 'p', 'mp', 'mf', 'f', 'ff'
             elif clicked == Radio.Length:
                 strings = '2', '4', '8', '16', '32', '.'
+            elif clicked == Radio.CC:
+                self.cc_list.strings = [str(cc) + ' ' + name
+                                        for cc, name in self.part.cc]
             self.preset_radios.strings = strings
             self.refresh_slider()
 
