@@ -1,6 +1,8 @@
 import pygame.midi as pm
 import yaml
 
+from collections import namedtuple
+
 from choicelist import ChoiceList
 import screen
 
@@ -32,47 +34,12 @@ FF = 112
 FFF = 127
 
 out = 0
+m_in = 0
+in_channel = 0
 
+MidiEvent = namedtuple('MidiEvent', 'channel status data1 data2 data3')
+input_events = set([])
 
-# class MidiEvent:
-#     def __init__(self, status, data1, data2, timestamp):
-#         self.status = status
-#         self.data1 = data1
-#         self.data2 = data2
-#         self.timestamp = timestamp
-#         self.off = None  # note_on events has an off event too
-
-#     def transpose(self, value, channel=0):
-#         """Transposes an event, sends note off for old note"""
-#         # TODO: Need to note off here, old note keeps playing
-#         if self.off:
-#             self.off.data1 += value
-#             out.write_short(self.status + channel, self.data1, 0)
-#         self.data1 += value
-
-#     def set_note(self, value, channel=0):
-#         """Set data1 of an event, sends note off for old note"""
-#         if self.off:
-#             self.off.data1 = value
-#             out.write_short(self.status + channel, self.data1, 0)
-#         self.data1 = value
-
-#     def move(self, length):
-#         self.timestamp += length
-#         if self.off:
-#             self.off.timestamp += length
-
-#     def __str__(self):
-#         return 'ts: %f, status: %i, data1: %i, data2: %i' % (self.timestamp,
-#                                                              self.status,
-#                                                              self.data1,
-#                                                              self.data2)
-
-# def note(tone, velocity, timestamp, length):
-#     on = MidiEvent(NOTE_ON, tone, velocity, timestamp)
-#     off = MidiEvent(NOTE_ON, tone, 0, timestamp + length)
-#     on.off = off
-#     return [on, off]
 
 def outDevices():
     """Return a list of tuples: (device name, output device number)"""
@@ -115,10 +82,53 @@ def set_out_device(name):
     return False
 
 
+def set_in_device(name):
+    global m_in
+    for in_d in inDevices():
+        if in_d[0] == name:
+            m_in = pm.Input(in_d[1])
+            return True
+    return False
+
+
+def update_input_events():
+    """Should be run once per frame in order to keep midi in data fresh."""
+    global input_events
+    if m_in and m_in.poll():
+        input_events = set([MidiEvent(e[0][0] & 0x0f,
+                                      e[0][0] & 0xf0,
+                                      e[0][1],
+                                      e[0][2],
+                                      e[0][3])
+                            for e in m_in.read(1000)])
+    else:
+        input_events = set([])
+
+
+def note_on_events():
+    """A list of all note on events this frame."""
+    return [e for e in input_events
+            if e.channel == in_channel and e.status == NOTE_ON]
+
+
+def note_off_events():
+    """A list of all note off events this frame.
+    Note on with velocity 0 is treated as note off."""
+    return [e for e in input_events
+            if e.channel == in_channel and
+            (e.status == NOTE_OFF or
+             e.status == NOTE_ON and e.data2 == 0)]
+
+
 def init():
     """Initialize MIDI, return False if we haven't set up a MIDI Out Device."""
+    global m_in
     pm.init()
     config_yaml = yaml.load(file('config.yml', 'r'))
+    try:
+        set_in_device(config_yaml['midi_in'])
+    except:
+        m_in = 0
     if not set_out_device(config_yaml['midi_out']):
         devices = [[od[0], od[0]] for od in outDevices()]
         screen.stack.append(ChoiceList(devices, 'Out Device'))
@@ -128,4 +138,6 @@ def init():
 
 def close():
     out.close()
+    if m_in:
+        m_in.close()
     pm.quit()

@@ -18,6 +18,7 @@ if midi.init():
 
 while 1:
     events = pygame.event.get()
+    midi.update_input_events()
     screen.stack[-1].update(events)
     for e in events:
         if e.type == pygame.QUIT:

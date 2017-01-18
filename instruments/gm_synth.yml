@@ -1,22 +1,15 @@
 name: "GM Synth"
-channel: 0
-sequencer:
-  type: grid
-  root: f
-  scale: minor
-  octave: 2
-  length: 8
-parameters:
-  - name: Modulation
-    cc: 1
-  - name: Volume
-    cc: 7
-  - name: Pan
-    cc: 10
-  - name: Expression
-    cc: 11
-  - name: Sustain
-    cc: 64
+channel: 1
+editor:
+  type: Grid
+  width: 4
+  height: 4
+cc:
+  - [1, Modulation]
+  - [7, Volume]
+  - [10, Pan]
+  - [11, Expression]
+  - [64, Sustain]
 programs:
   - [Acoustic Grand Piano, 0]
   - [Bright Acoustic Piano, 1]

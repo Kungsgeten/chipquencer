@@ -88,6 +88,7 @@ class SeqGrid(screen.Screen):
         self.keyboard_root = kb_root
         self.keyboard_mode = kb_mode
         self.key_notes_pressed = []
+        self.midi_in_notes_pressed = set([])
         km_modeline_element = ModelineSections.KeyboardMode
         self.modeline.strings[km_modeline_element] = self.keyboard_mode.name
 
@@ -259,6 +260,9 @@ class SeqGrid(screen.Screen):
                 if pressed_keys[key]:
                     note = self.keyboard_root + self.KEYBOARD_KEYS[key]
                     self.new_note_at_step(note, x, y)
+            for pressed in self.midi_in_notes_pressed:
+                ts, note, velocity = pressed
+                self.new_note_at_step(note, x, y, velocity=velocity)
 
         step_to_update = None
         for step in self.selected:
@@ -282,11 +286,16 @@ class SeqGrid(screen.Screen):
             if len(events):
                 self.part.delete(events[index])
 
-    def new_note_at_step(self, note, x, y):
-        ts = self.step_timestamp(x, y)
+    def new_note_at_step(self, note, x, y,
+                         velocity=None, length=None, offset=0.0):
+        if velocity is None:
+            velocity = self.last_vel
+        if length is None:
+            length = self.last_length
+        ts = self.step_timestamp(x, y) + offset
         note_event = event.Event(ts,
                                  event.note_on,
-                                 [note, self.last_vel, self.last_length])
+                                 [note, velocity, length])
         self.part.append(note_event)
 
     def keyboard_mode_cycle(self):
@@ -503,6 +512,43 @@ class SeqGrid(screen.Screen):
                     e.length = math.floor(e.length) + length_offset - subtract
                     self.last_length = e.length
 
+    def handle_midi_in(self):
+        for e in midi.note_on_events():
+            midi.out.write_short(e.status + self.part.channel,
+                                 e.data1,
+                                 e.data2)
+            ts = int(round(sequencer.running_time)) % self.part.length
+            self.midi_in_notes_pressed.add((ts, e.data1, e.data2))
+            if(self.selected and (self.keyboard_mode is KeyboardMode.Step or
+                                  self.keyboard_mode is KeyboardMode.RealTime and
+                                  not sequencer.running)):
+                self.new_note_at_step(e.data1, *self.selected[0].pos(),
+                                      velocity=e.data2)
+
+        for e in midi.note_off_events():
+            midi.out.write_short(e.status + self.part.channel,
+                                 e.data1,
+                                 e.data2)
+
+            to_remove = []
+            for pressed in self.midi_in_notes_pressed:
+                ts, note, vel = pressed
+                if note == e.data1:
+                    if(self.keyboard_mode == KeyboardMode.RealTime and
+                       sequencer.running):
+                        end_ts = sequencer.running_time % self.part.length
+                        if end_ts < ts:
+                            end_ts += self.part.length
+                        length = end_ts - ts
+                        if length > self.part.length:
+                            length = self.part.length - 0.1
+                        note_event = event.Event(ts,
+                                                 event.note_on,
+                                                 [note, vel, length])
+                        self.part.append(note_event)
+                    to_remove.append(pressed)
+            self.midi_in_notes_pressed.difference_update(to_remove)
+
     def _update(self, events):
         self.has_changed = sequencer.new_step
 
@@ -513,6 +559,7 @@ class SeqGrid(screen.Screen):
         self.update_slider_and_presets(events)
 
         # keys = pygame.key.get_pressed()
+        self.handle_midi_in()
 
         for e in events:
             if e.type == pygame.MOUSEBUTTONDOWN:
