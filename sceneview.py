@@ -14,6 +14,7 @@ from modeline import Modeline
 from clipsettings import ClipSettings
 from choicelist import ChoiceList
 from save_screen import SaveScreen
+from config import ConfigScreen
 
 PART_BOX_SIZE = 55
 
@@ -89,16 +90,20 @@ class SceneView(screen.Screen):
                              for f in glob('projects/*.yaml')]
                     screen.stack.append(ChoiceList(files, 'Load project'))
                 elif e.key == pygame.K_s:
+                    # Save
                     path = sequencer.project['path']
                     if path is None:
                         self.save_as()
                     else:
                         sequencer.save(path)
-                elif e.key == pygame.K_p:
+                elif e.key == pygame.K_v:
                     # Paste
                     if self.clip_copy is not None:
                         sequencer.scene().append(self.clip_copy)
                         self.update_partrects()
+                elif e.key == pygame.K_p:
+                    # Preferences
+                    screen.stack.append(ConfigScreen())
                 else:
                     try:
                         scene = int(e.unicode.encode('utf-8'))
@@ -146,14 +151,7 @@ class SceneView(screen.Screen):
 
     def focus(self, *args, **kwargs):
         self.clip_copy = None
-        # Update midi out device, see midi.py
-        if 'out_device' in kwargs:
-            midi.set_out_device(kwargs['out_device'])
-            stream = file('config.yml', 'w')
-            data = {'midi_out': kwargs['out_device']}
-            yaml.dump(data, stream)
-            sequencer.start()
-        elif 'load_project' in kwargs:
+        if 'load_project' in kwargs:
             sequencer.load(kwargs['load_project'])
         self.update_partrects()
 

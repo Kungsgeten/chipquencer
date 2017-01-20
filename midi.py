@@ -3,9 +3,6 @@ import yaml
 
 from collections import namedtuple
 
-from choicelist import ChoiceList
-import screen
-
 NOTE_OFF = 0x80
 NOTE_ON = 0x90
 POLY_AFTERTOUCH = 0xA0
@@ -75,6 +72,8 @@ def note_to_string(note):
 
 def set_out_device(name):
     global out
+    if out:
+        out.close()
     for od in outDevices():
         if od[0] == name:
             out = pm.Output(od[1])
@@ -84,6 +83,8 @@ def set_out_device(name):
 
 def set_in_device(name):
     global m_in
+    if m_in:
+        m_in.close()
     for in_d in inDevices():
         if in_d[0] == name:
             m_in = pm.Input(in_d[1])
@@ -122,22 +123,22 @@ def note_off_events():
 
 def init():
     """Initialize MIDI, return False if we haven't set up a MIDI Out Device."""
-    global m_in
+    global m_in, in_channel
     pm.init()
     config_yaml = yaml.load(file('config.yml', 'r'))
     try:
+        in_channel = config_yaml['midi_in_channel']
         set_in_device(config_yaml['midi_in'])
     except:
         m_in = 0
     if not set_out_device(config_yaml['midi_out']):
-        devices = [[od[0], od[0]] for od in outDevices()]
-        screen.stack.append(ChoiceList(devices, 'Out Device'))
         return False
     return True
 
 
 def close():
-    out.close()
+    if out:
+        out.close()
     if m_in:
         m_in.close()
     pm.quit()

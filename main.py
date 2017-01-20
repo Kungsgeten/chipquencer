@@ -6,6 +6,8 @@ import gui
 import screen
 import sceneview
 
+from config import ConfigScreen
+
 import sys
 import pygame
 
@@ -15,6 +17,8 @@ screen.stack.append(sceneview.SceneView())
 display = pygame.display.set_mode(gui.SCREEN_SIZE)
 if midi.init():
     sequencer.start()
+else:
+    screen.stack.append(ConfigScreen())
 
 while 1:
     events = pygame.event.get()
@@ -22,7 +26,8 @@ while 1:
     screen.stack[-1].update(events)
     for e in events:
         if e.type == pygame.QUIT:
-            sequencer.stop()
+            if sequencer.running:
+                sequencer.stop()
             midi.close()
             sys.exit()
     pygame.event.pump()

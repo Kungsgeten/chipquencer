@@ -1,2 +1,1 @@
-midi_out: Microsoft GS Wavetable Synth
-midi_in: Ableton Push 2
+{midi_in: null, midi_in_channel: 1, midi_out: Microsoft GS Wavetable Synth}
