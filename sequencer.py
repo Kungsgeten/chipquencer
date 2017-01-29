@@ -1,5 +1,4 @@
 import midi
-# import project
 
 import pygame.time
 import bisect
@@ -22,6 +21,7 @@ project = {'name': 'Unnamed',
            'midi_clock': None,
            'scenes': [[]]}
 current_scene = 0
+goto_scene = None
 
 
 def scene(scene_nr=None):
@@ -33,6 +33,16 @@ def scene(scene_nr=None):
         scene_nr = current_scene
     return project['scenes'][scene_nr]
 
+def _switch_scene():
+    global current_scene, goto_scene
+    from screen import stack
+    current_scene = goto_scene
+    goto_scene = None
+    topclass = stack[-1]
+    if topclass.__class__.__name__ == 'SceneView':
+        topclass.update_partrects()
+    scene = 'Scene {}/{}'.format(current_scene + 1, len(project['scenes']))
+    topclass.modeline[0] = scene
 
 def start():
     """Start the sequencer."""
@@ -188,7 +198,7 @@ class Part(object):
 
     def update(self):
         """Update the part and trigger new events. Check if part has looped."""
-        global running_time, running
+        global running_time, running, goto_scene
 
         timestamp = running_time % self.length
         measure = running_time // self.length
@@ -206,15 +216,19 @@ class Part(object):
             if self.toggle:
                 self.toggle = False
                 self.mute = not self.mute
+            if goto_scene is not None:
+                _switch_scene()
             if self.switch_to_variant is not None:
                 self._change_variant()
             self.finished = False
 
-        # TODO: Empty variant doesn't switch at end of clip
         if not self._events[self._variant]:
             if(self.switch_to_variant is not None
                and measure != self.last_measure):
                 self._change_variant()
+            if(goto_scene is not None
+               and measure != self.last_measure):
+                _switch_scene()
             self.last_measure = measure
             return
 

@@ -40,7 +40,10 @@ class SceneView(screen.Screen):
         self.partrects = []
         self.update_partrects()
         self.modeline = Modeline(len(ModelineSections))
-        self.goto_scene(sequencer.current_scene)
+        # sequencer.goto_scene = sequencer.current_scene
+        scene = 'Scene {}/{}'.format(sequencer.current_scene + 1,
+                                     len(sequencer.project['scenes']))
+        self.modeline[ModelineSections.Scene] = scene
 
     def update_partrects(self):
         """Update rectangles showing part information."""
@@ -58,12 +61,9 @@ class SceneView(screen.Screen):
             return
         if len(sequencer.project['scenes']) == index:
             sequencer.project['scenes'].append([])
-        sequencer.current_scene = index
-        self.update_partrects()
-
-        scene = 'Scene {}/{}'.format(sequencer.current_scene + 1,
-                                     len(sequencer.project['scenes']))
-        self.modeline[ModelineSections.Scene] = scene
+        sequencer.goto_scene = index
+        if len(sequencer.scene()) == 0 or not sequencer.running:
+            sequencer._switch_scene()
 
     def save_as(self):
         """Show save screen prompt."""
@@ -127,6 +127,7 @@ class SceneView(screen.Screen):
         scene = sequencer.scene()
         for e in mouseevents:
             x, y = e.pos
+            # Upon partrect click
             for i, rect in enumerate(self.partrects):
                 if rect.collidepoint(e.pos):
                     keys = pygame.key.get_pressed()
