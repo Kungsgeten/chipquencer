@@ -1,1 +1,1 @@
-{midi_in: null, midi_in_channel: 1, midi_out: Microsoft GS Wavetable Synth}
+{midi_in: Midi Through Port-0, midi_in_channel: 1, midi_out: Midi Through Port-0}

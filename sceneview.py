@@ -43,6 +43,7 @@ class SceneView(screen.Screen):
         self.goto_scene(sequencer.current_scene)
 
     def update_partrects(self):
+        """Update rectangles showing part information."""
         self.partrects = []
         for i, part in enumerate(sequencer.parts()):
             rect = pygame.Rect(box_pos(i), (PART_BOX_SIZE, PART_BOX_SIZE))
@@ -52,6 +53,7 @@ class SceneView(screen.Screen):
         self.partrects.append(rect)
 
     def goto_scene(self, index):
+        """Switch to another scene."""
         if len(sequencer.project['scenes']) < index:
             return
         if len(sequencer.project['scenes']) == index:
@@ -64,6 +66,7 @@ class SceneView(screen.Screen):
         self.modeline[ModelineSections.Scene] = scene
 
     def save_as(self):
+        """Show save screen prompt."""
         screen.stack.append(SaveScreen())
 
     def keydown_events(self, keyevents):
@@ -76,14 +79,20 @@ class SceneView(screen.Screen):
                 if e.key == pygame.K_s:
                     self.save_as()
             elif mods & pygame.KMOD_ALT:
-                pass
+                # Change scene
+                if e.key == pygame.K_0:
+                    self.goto_scene(9)
+                else:
+                    try:
+                        scene = int(e.unicode.encode('utf-8'))
+                        self.goto_scene(scene - 1)
+                    except:
+                        pass
             else:
                 if e.key == pygame.K_q:
                     pygame.event.post(pygame.event.Event(pygame.QUIT))
                 elif e.key == pygame.K_SPACE:
                     sequencer.toggle()
-                elif e.key == pygame.K_0:
-                    self.goto_scene(9)
                 elif e.key == pygame.K_o:
                     # Load file
                     files = [[f[len("projects/"):], f]
@@ -104,12 +113,15 @@ class SceneView(screen.Screen):
                 elif e.key == pygame.K_p:
                     # Preferences
                     screen.stack.append(ConfigScreen())
-                else:
-                    try:
-                        scene = int(e.unicode.encode('utf-8'))
-                        self.goto_scene(scene - 1)
-                    except:
-                        pass
+
+    def _partrect_variant_click(self, clip, keys):
+        """Change variant of clicked clip, if correct key held."""
+        # 49 is pygame.K_1, 57 is pygame.K_9
+        for i in range(49, 58):
+            if keys[i]:
+                clip.part.switch_to_variant = i - 49
+                return True
+        return False
 
     def mousedown_events(self, mouseevents):
         scene = sequencer.scene()
@@ -138,6 +150,11 @@ class SceneView(screen.Screen):
                     elif keys[pygame.K_m]:
                         # (un)Mute clip
                         clip.part.mute = not clip.part.mute
+                    # Change variant
+                    elif keys[pygame.K_0]:
+                        clip.part.switch_to_variant = 9
+                    elif self._partrect_variant_click(clip, keys):
+                        pass
                     else:
                         screen.stack.append(clip)
                     return
@@ -167,6 +184,10 @@ class SceneView(screen.Screen):
             pos = rect.move(2, 2).topleft
             text = self.font.render(part.name, False, color)
             surface.blit(text, pos)
+            variant_text = self.font.render('V:{}'.format(part._variant + 1),
+                                            False, color)
+            x, y = rect.bottomleft
+            surface.blit(variant_text, (x + 4, y - 12))
             # Playtime
             timestamp = sequencer.running_time % part.length
             played_x = timestamp / part.length * PART_BOX_SIZE + rect.x

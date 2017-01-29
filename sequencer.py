@@ -116,18 +116,20 @@ update.next_ppq = 0
 # Timestamps are measured in 16ths
 class Part(object):
     def __init__(self, name, length=16, channel=0,
-                 bank=0, program=0, cc=None, events=None):
+                 bank=0, program=0, cc=None, events=None, variant=0):
         if events is None:
-            self._events = []
+            # Every element is a variant. A variant is a list of events,
+            # sorted by timestamp. 10 variants is possible per Part.
+            self._events = [list() for i in range(10)]
         else:
-            self._events = events  # events in the loop, sorted by timestamp
+            self._events = events
         if cc is None:
             self.cc = [(i, '') for i in range(120)]
         else:
-            print cc
             self.cc = cc
         self.length = length  # in 16th notes
         self.name = name
+        self._variant = variant
 
         self.future_events = []
         self._mute = False
@@ -140,6 +142,7 @@ class Part(object):
         self.program = program
         self.toggle = False
         self.last_measure = -1
+        self.switch_to_variant = None
 
     def __repr__(self):
         return 'Part(name={}, length={}, events={})'.format(self.name,
@@ -162,8 +165,10 @@ class Part(object):
 
     @length.setter
     def length(self, value):
-        if self._events:
-            self._events = [e for e in self._events if e.timestamp < value]
+        for variant_events in self._events:
+            if variant_events:
+                variant_events = [e for e in variant_events
+                                  if e.timestamp < value]
         self._length = value
 
     @property
@@ -174,6 +179,12 @@ class Part(object):
     def channel(self, value):
         self.stop()
         self._channel = value
+
+    def _change_variant(self):
+        self.stop()
+        self._variant = self.switch_to_variant
+        self.switch_to_variant = None
+        self.start(program_change=False)
 
     def update(self):
         """Update the part and trigger new events. Check if part has looped."""
@@ -190,41 +201,48 @@ class Part(object):
                 event.call(self)
                 self.future_events.pop(0)
 
-        if not self._events:
-            return
-
         # Part has looped?
         if self.finished and measure != self.last_measure:
             if self.toggle:
                 self.toggle = False
                 self.mute = not self.mute
+            if self.switch_to_variant is not None:
+                self._change_variant()
             self.finished = False
+
+        # TODO: Empty variant doesn't switch at end of clip
+        if not self._events[self._variant]:
+            if(self.switch_to_variant is not None
+               and measure != self.last_measure):
+                self._change_variant()
+            self.last_measure = measure
+            return
+
+        self.last_measure = measure
 
         if running and not self.finished and timestamp >= self.next_timestamp:
             self._trigger_event()
 
-        self.last_measure = measure
-
     def stop(self):
-        """When the part is stopped."""
-        # Stop all notes
+        """Stop all notes."""
         for e in self.future_events:
             if e.type() == 'note_off':
                 e.call(self)
         midi.out.write_short(midi.CC + self.channel, 120, 127)
         self.future_events = []
 
-    def start(self):
+    def start(self, program_change=True):
         """When the part starts from the beginning."""
         self.finished = False
         self.last_measure = -1
         self.element = -1
-        if self.bank > 0:
-            midi.out.write_short(midi.CC + self.channel, 32, self.bank - 1)
-        if self.program > 0:
-            midi.out.write_short(midi.PC + self.channel, self.program - 1)
+        if program_change:
+            if self.bank > 0:
+                midi.out.write_short(midi.CC + self.channel, 32, self.bank - 1)
+            if self.program > 0:
+                midi.out.write_short(midi.PC + self.channel, self.program - 1)
         try:
-            self.next_timestamp = self._events[0].timestamp
+            self.next_timestamp = self._events[self._variant][0].timestamp
         except:
             self.finished = True
 
@@ -234,23 +252,22 @@ class Part(object):
     def append(self, event):
         """Add new event to the part"""
         event.timestamp = event.timestamp % self.length
-        self._events.append(event)
+        self._events[self._variant].append(event)
         self._sort()
 
     def delete(self, event):
-        self._events.remove(event)
+        self._events[self._variant].remove(event)
         self._sort()
-        print self.future_events
 
     def events(self, type=None):
         """Return all events of given type. All events if type==None."""
         if type:
-            return [e for e in self._events if e.type() == type]
-        return self._events
+            return [e for e in self._events[self._variant] if e.type() == type]
+        return self._events[self._variant]
 
     def tranpose(self, semitones):
         """Transpose all note properties of the parts events."""
-        for e in self._events:
+        for e in self._events[self._variant]:
             try:
                 e.note += semitones
             except:
@@ -259,37 +276,37 @@ class Part(object):
     def _sort(self):
         """Sort self._events. Calc self.element and self.next_timestamp."""
         global running_time
-        if len(self._events) == 0:
+        if len(self._events[self._variant]) == 0:
             self.start()
             return
-        self._events.sort()
+        self._events[self._variant].sort()
         # Calculate last element played
         step_in_loop = running_time % self.length
-        self.element = len(self._events) - 1
-        for i, e in enumerate(self._events):
+        self.element = len(self._events[self._variant]) - 1
+        for i, e in enumerate(self._events[self._variant]):
             if e.timestamp < step_in_loop:
                 self.element = i
-        next_element = (self.element + 1) % len(self._events)
-        self.next_timestamp = self._events[next_element].timestamp
+        next_elmt = (self.element + 1) % len(self._events[self._variant])
+        self.next_timestamp = self._events[self._variant][next_elmt].timestamp
         self.finished = False
-        if step_in_loop > self._events[-1].timestamp:
+        if step_in_loop > self._events[self._variant][-1].timestamp:
             self.finished = True
 
     def _trigger_event(self):
         """Trigger event(s). Update self.element. Check if finished."""
         # trigger all events with the correct timestamp
-        element_to_play = (self.element + 1) % len(self._events)
-        while(self._events[element_to_play].timestamp == self.next_timestamp
-              and not self.finished):
+        play_elmt = (self.element + 1) % len(self._events[self._variant])
+        while(self._events[self._variant][play_elmt].timestamp ==
+              self.next_timestamp and not self.finished):
             if not self.mute:
-                event = self._events[element_to_play]
+                event = self._events[self._variant][play_elmt]
                 event.call(self)
-            self.element = element_to_play
-            if self.element == len(self._events) - 1:
+            self.element = play_elmt
+            if self.element == len(self._events[self._variant]) - 1:
                 self.finished = True
-            element_to_play = (self.element + 1) % len(self._events)
+            play_elmt = (self.element + 1) % len(self._events[self._variant])
 
-        self.next_timestamp = self._events[element_to_play].timestamp
+        self.next_timestamp = self._events[self._variant][play_elmt].timestamp
 
 
 # YAML Part representation
@@ -300,7 +317,8 @@ def part_representer(dumper, data):
                'bank': data.bank,
                'program': data.program,
                'cc': data.cc,
-               'events': data._events}
+               'events': data._events,
+               'variant': data._variant}
     return dumper.represent_mapping(u'!part', mapping)
 
 
@@ -308,7 +326,7 @@ def part_constructor(loader, node):
     m = loader.construct_mapping(node)
     return Part(m['name'], m['length'], m['channel'],
                 m['bank'], m['program'], m['cc'],
-                m['events'])
+                m['events'], m['variant'])
 
 yaml.add_representer(Part, part_representer)
 yaml.add_constructor(u'!part', part_constructor)

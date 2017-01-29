@@ -19,7 +19,6 @@ if midi.init():
     sequencer.start()
 else:
     screen.stack.append(ConfigScreen())
-
 while 1:
     events = pygame.event.get()
     midi.update_input_events()
