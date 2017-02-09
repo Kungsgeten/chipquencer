@@ -22,7 +22,7 @@ else:
 while 1:
     events = pygame.event.get()
     midi.update_input_events()
-    screen.stack[-1].update(events)
+    screen.stack.top().update(events)
     for e in events:
         if e.type == pygame.QUIT:
             if sequencer.running:
@@ -32,7 +32,7 @@ while 1:
     pygame.event.pump()
     sequencer.update()
 
-    surface = screen.stack[-1].render()
+    surface = screen.stack.top().render()
     if surface is not None:
         display.blit(surface, (0, 0))
         pygame.display.flip()

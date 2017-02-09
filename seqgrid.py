@@ -630,13 +630,6 @@ class SeqGrid(screen.Screen):
                     lenrect = pygame.Rect(xpos, ypos,
                                           pixel_length, step_height / 2)
                     pygame.draw.rect(surface, gui.C_DARKER, lenrect, False)
-
-            # elif self.radios.selected == Radio.Offset:
-            #     xpos += self.slider.get_data() * step_width
-            #     pygame.draw.line(surface, gui.C_DARKER,
-            #                      (xpos, ypos),
-            #                      (xpos, ypos + step_height))
-
             elif self.radios.selected == Radio.Velocity:
                 xpos += step_width * 0.25
                 ypos += step_height - step_height * self.slider.get_data()

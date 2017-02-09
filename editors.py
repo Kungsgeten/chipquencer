@@ -10,3 +10,4 @@ editors = []
 
 def import_editor_classes():
     import seqgrid
+    import seqdrum

@@ -46,9 +46,9 @@ class ChoiceList(screen.Screen):
                         return
                     value = None
                     if type(self.choices[index_clicked]) is list:
-                        screen.pop(**{self.returnkey: self.choices[index_clicked][1]})
+                        screen.stack.pop(**{self.returnkey: self.choices[index_clicked][1]})
                     else:
-                        screen.pop(**{self.returnkey: self.choices[index_clicked]})
+                        screen.stack.pop(**{self.returnkey: self.choices[index_clicked]})
                 else:
                     self.scrolling = True
             elif e.type == pygame.MOUSEBUTTONUP:

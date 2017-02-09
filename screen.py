@@ -2,12 +2,34 @@ import pygame
 
 import gui
 
-stack = [] # a stack of the current screens
 
-def pop(*args, **kwargs):
-    stack.pop()
-    stack[-1].focus(*args, **kwargs)
-    stack[-1].has_changed = True
+class ScreenStack:
+    def __init__(self):
+        self.stack = []
+
+    def __len__(self):
+        return len(self.stack)
+
+    def __contains__(self, item):
+        return item in self.stack
+
+    def pop(self, *args, **kwargs):
+        self.stack.pop()
+        self.top().focus(*args, **kwargs)
+        self.top().has_changed = True
+        return self.top()
+
+    def append(self, element):
+        assert isinstance(element, Screen), 'Element must be of type Screen.'
+        self.stack.append(element)
+        self.top().focus()
+        self.top().has_changed = True
+
+    def top(self):
+        return self.stack[-1]
+
+stack = ScreenStack()
+
 
 class Screen(object):
     """Screen is meant to be used as an abstract base class for other "screens". A
@@ -28,7 +50,7 @@ class Screen(object):
             for e in events:
                 if e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE:
                     self.close()
-                    pop()
+                    stack.pop()
                     return
         self._update(events)
 
@@ -54,6 +76,6 @@ class Screen(object):
         pass
 
     def focus(self, *args, **kwargs):
-        """This method is run when the previous screen on the stack pops,
-        returning the user to this screen."""
+        """Run when the screen is switched to, from the previously active
+        screen, for instance using pop."""
         pass
