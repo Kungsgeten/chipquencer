@@ -33,16 +33,18 @@ def scene(scene_nr=None):
         scene_nr = current_scene
     return project['scenes'][scene_nr]
 
+
 def _switch_scene():
     global current_scene, goto_scene
     from screen import stack
     current_scene = goto_scene
     goto_scene = None
-    topclass = stack[-1]
+    topclass = stack.top()
     if topclass.__class__.__name__ == 'SceneView':
         topclass.update_partrects()
     scene = 'Scene {}/{}'.format(current_scene + 1, len(project['scenes']))
     topclass.modeline[0] = scene
+
 
 def start():
     """Start the sequencer."""
@@ -191,7 +193,7 @@ class Part(object):
         self._channel = value
 
     def _change_variant(self):
-        self.stop()
+        self.stop(kill_all=False)
         self._variant = self.switch_to_variant
         self.switch_to_variant = None
         self.start(program_change=False)
@@ -237,12 +239,13 @@ class Part(object):
         if running and not self.finished and timestamp >= self.next_timestamp:
             self._trigger_event()
 
-    def stop(self):
+    def stop(self, kill_all=True):
         """Stop all notes."""
         for e in self.future_events:
             if e.type() == 'note_off':
                 e.call(self)
-        midi.out.write_short(midi.CC + self.channel, 120, 127)
+        if kill_all:
+            midi.out.write_short(midi.CC + self.channel, 120, 127)
         self.future_events = []
 
     def start(self, program_change=True):
