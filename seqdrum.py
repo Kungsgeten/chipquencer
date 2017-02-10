@@ -13,7 +13,6 @@ import math
 
 from enum import IntEnum
 
-
 class ModelineSections(IntEnum):
     Measure = 0
     Velocity = 1
@@ -32,11 +31,7 @@ class SeqDrum(screen.Screen):
         self.velocity_input = 104
         self.last_curstep = -1
         if rows is None:
-            self.rows = [
-                {'normal': 36,
-                 'x': 37},
-                {'normal': 38,
-                 'x': 39}]
+            self.rows = list()
         else:
             self.rows = rows
         self.grid = None
@@ -171,14 +166,25 @@ class SeqDrum(screen.Screen):
         self.last_curstep = curstep
         self.velocity_input = self.velocity_key() or self.velocity_input
         for e in events:
-            if e.type == pygame.MOUSEBUTTONDOWN:
+            if e.type == pygame.MOUSEBUTTONDOWN and len(self.rows):
                 x, y = e.pos
                 row = y // self.STEP_HEIGHT
                 if row < len(self.grid):
                     col = x // self.step_width() + self.measure * self.width
                     self.step_clicked(row, col)
+            elif e.type == pygame.KEYDOWN:
+                mods = pygame.key.get_mods()
+                if mods & pygame.KMOD_SHIFT:
+                    if e.key == pygame.K_o:  # Options
+                        screen.stack.append(RowEditor(self))
 
     def _render(self, surface):
+        self.modeline.render(surface)
+        if len(self.rows) == 0:
+            string = 'Press Shift + O to add rows.'
+            text = self.font.render(string, False, gui.C_DARKEST)
+            surface.blit(text, (10, 10))
+            return surface
         curstep = math.floor(sequencer.running_time % self.part.length)
         for row in range(len(self.grid)):
             for col, data in enumerate(self.grid[row]):
@@ -194,12 +200,10 @@ class SeqDrum(screen.Screen):
                 if data is not None and data != ' ':
                     text = self.font.render(data, False, gui.C_DARKEST)
                     surface.blit(text, pos)
-        self.modeline.render(surface)
         return surface
 
     def focus(self, *args, **kwargs):
-        if self.grid is None:
-            self.part_to_grid()
+        self.part_to_grid()
 
 
 # YAML SeqDrum representation
@@ -217,3 +221,116 @@ def seqdrum_constructor(loader, node):
 editors.editors.append(["Drums", SeqDrum])
 yaml.add_representer(SeqDrum, seqdrum_representer)
 yaml.add_constructor(u'!seqdrum', seqdrum_constructor)
+
+
+class RowEditor(screen.Screen):
+    """Class for editing/inserting rows in a SeqDrum."""
+    rowfont = gui.FONT_BIG
+    KEYBOARD_KEYS = {pygame.K_z: 0,
+                     pygame.K_s: 1,
+                     pygame.K_x: 2,
+                     pygame.K_d: 3,
+                     pygame.K_c: 4,
+                     pygame.K_v: 5,
+                     pygame.K_g: 6,
+                     pygame.K_b: 7,
+                     pygame.K_h: 8,
+                     pygame.K_n: 9,
+                     pygame.K_j: 10,
+                     pygame.K_m: 11,
+                     pygame.K_PERIOD: 12}
+
+    def __init__(self, seqdrum):
+        self.modeline = Modeline(2)
+        self.seqdrum = seqdrum
+        self.row = 0
+        self.STEP_SIZE = seqdrum.STEP_HEIGHT
+        self.keyboard_root = 36
+        self.note = 36
+
+    @property
+    def keyboard_root(self):
+        return self._kb_root
+
+    @keyboard_root.setter
+    def keyboard_root(self, note):
+        self._kb_root = note % 127
+        octave_string = 'Octave: ' + midi.note_to_string(self._kb_root)[2]
+        self.modeline[0] = octave_string
+
+    @property
+    def note(self):
+        return self._note
+
+    @note.setter
+    def note(self, value):
+        self._note = value
+        note_string = 'Note:{} ({})'.format(value, midi.note_to_string(value))
+        self.modeline[1] = note_string
+
+    def _update(self, events):
+        for e in events:
+            if e.type == pygame.KEYDOWN:
+                self.has_changed = True
+                mods = pygame.key.get_mods()
+                note = None
+                # Key corresponds to the virtual keyboard?
+                if e.key in self.KEYBOARD_KEYS:
+                    note = self.keyboard_root + self.KEYBOARD_KEYS[e.key]
+                # Navigate between/move rows
+                if e.key == pygame.K_DOWN and len(self.seqdrum.rows):
+                    if mods & pygame.KMOD_SHIFT:
+                        rows = self.seqdrum.rows
+                        rows.insert((self.row + 1) % len(rows),
+                                    rows.pop(self.row))
+                    self.row += 1
+                    self.row = self.row % len(self.seqdrum.rows)
+                elif e.key == pygame.K_UP and len(self.seqdrum.rows):
+                    if mods & pygame.KMOD_SHIFT:
+                        rows = self.seqdrum.rows
+                        rows.insert((self.row - 1) % len(rows),
+                                    rows.pop(self.row))
+                    self.row -= 1
+                    self.row = self.row % len(self.seqdrum.rows)
+                # Insert note in selected row
+                elif mods & pygame.KMOD_SHIFT:
+                    if e.key in range(97, 123):
+                        self.seqdrum.rows[self.row][chr(e.key)] = self.note
+                    elif e.key == pygame.K_SPACE:
+                        self.seqdrum.rows[self.row]['normal'] = self.note
+                # Transpose the virtual keyboard
+                elif e.key == pygame.K_TAB:
+                    self.keyboard_root -= 12
+                    self.keyboard_root = self.keyboard_root % 127
+                elif e.key == pygame.K_RETURN:
+                    self.keyboard_root += 12
+                    self.keyboard_root = self.keyboard_root % 127
+                # Insert new row
+                elif e.key == pygame.K_RIGHT:
+                    self.seqdrum.rows.append({'normal': self.note})
+                # Delete selected row
+                elif e.key == pygame.K_LEFT:
+                    self.seqdrum.rows.pop(self.row)
+                # Play the virtual keyboard
+                elif note is not None:
+                    msg = self.seqdrum.part.channel + midi.NOTE_ON
+                    ts = pygame.midi.time()
+                    data = [[[msg, note, 127], ts],
+                            [[msg, note, 0], ts + 500]]
+                    midi.out.write(data)
+                    self.note = note
+
+    def _render(self, surface):
+        for i, row in enumerate(self.seqdrum.rows):
+            rect = pygame.Rect((0, i * self.STEP_SIZE),
+                               (self.STEP_SIZE, self.STEP_SIZE))
+            rectcolor = gui.C_PRIMARY
+            if self.row == i:
+                rectcolor = gui.C_DARKER
+            pygame.draw.rect(surface, rectcolor, rect, self.row != i)
+            string = ', '.join(['{}={}'.format(c, n)
+                                for c, n in self.seqdrum.rows[i].iteritems()])
+            text = self.rowfont.render(string, False, gui.C_DARKEST)
+            surface.blit(text, (self.STEP_SIZE + 3, i * self.STEP_SIZE + 7))
+        self.modeline.render(surface)
+        return surface

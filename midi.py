@@ -76,7 +76,7 @@ def set_out_device(name):
         out.close()
     for od in outDevices():
         if od[0] == name:
-            out = pm.Output(od[1])
+            out = pm.Output(od[1], 1)
             return True
     return False
 
